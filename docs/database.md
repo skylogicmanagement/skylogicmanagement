@@ -168,6 +168,11 @@ no puede ser negativo; las transferencias conservan el total y mueven stock entr
 ubicaciones. No se puede editar el saldo directamente: toda existencia inicial también
 se registra como movimiento.
 
+`complete_maintenance_with_parts` cierra la intervención y registra sus movimientos de
+instalación o consumo en una única transacción. Si una línea excede el stock disponible,
+se revierte tanto el cierre como todos los movimientos del intento. Cada movimiento
+queda relacionado con el activo y el mantenimiento.
+
 ### Auditoria y archivos
 
 `audit_events` recibe snapshots de cambios mediante triggers. No se permiten ediciones

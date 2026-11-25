@@ -11,16 +11,16 @@
 
 1. Crea un proyecto Supabase; no actives un plan pago sin autorización.
 2. Deshabilita el registro público en Authentication.
-3. Abre SQL Editor en el proyecto y ejecuta, en este orden, las migraciones completas:
+3. Abre SQL Editor en el proyecto y ejecuta las migraciones que aún falten, en este orden:
    - `supabase/migrations/20261125130000_initial_schema.sql`
    - `supabase/migrations/20261125134500_maintenance_workflows.sql`
    - `supabase/migrations/20261125143000_inventory_workflows.sql`
    - `supabase/migrations/20261125150000_asset_profile_editing.sql`
-   Si ya ejecutaste la primera migración, ejecuta solamente la segunda; no vuelvas a
-   ejecutar la primera sobre un esquema ya creado. Si ya ejecutaste las migraciones
-   inicial y de mantenimiento, ejecuta solamente la de inventario.
-   Si ya ejecutaste las tres migraciones anteriores, ejecuta solamente la de edición
-   de fichas de activos.
+   - `supabase/migrations/20261125153000_maintenance_inventory_integration.sql`
+   No vuelvas a ejecutar una migración que ya se aplicó correctamente. La integración
+   de repuestos requiere las migraciones de mantenimiento e inventario; si alguna falta,
+   aplícala antes de la integración. La migración de edición de fichas puede conservarse
+   en su orden, pero no se debe repetir si ya fue aplicada.
 4. Invita a la primera cuenta desde Authentication. No habilites el registro público.
 5. Obtén el UUID de esa cuenta en Authentication y ejecuta, reemplazando el texto
    marcador:
@@ -56,8 +56,10 @@ asignación, horas de vuelo, movimientos de inventario, flujos transaccionales d
 mantenimiento y un bucket privado de archivos. La migración de inventario agrega
 control individual de seriales, saldos por ubicación y funciones transaccionales para
 crear artículos y registrar movimientos. La migración de fichas permite editar los
-datos generales y técnicos permitidos desde la aplicación. No ingreses datos reales
-hasta confirmar que las migraciones aplicables terminaron correctamente.
+datos generales y técnicos permitidos desde la aplicación. La integración con
+mantenimiento permite consultar cantidades disponibles y descontar repuestos al cerrar
+una intervención. No ingreses datos reales hasta confirmar que las migraciones
+aplicables terminaron correctamente.
 
 ## Instalacion local
 

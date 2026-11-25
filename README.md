@@ -15,12 +15,12 @@ habilitar el acceso seguro.
   adquisición, proveedor, ubicación, responsable y datos técnicos de baterías.
 - Fase 5 iniciada: operaciones, salidas, devoluciones parciales, lectura de horómetro y
   fincas con formularios transaccionales y sincronización en tiempo real.
-- Fases 4, 6 y 7 iniciadas: edición de fichas, mantenimiento transaccional, repuestos
-  serializados, saldos por ubicación y movimientos de inventario.
+- Fases 4, 6 y 7 iniciadas: edición de fichas, mantenimiento transaccional y descuento
+  atómico de repuestos, con inventario serializado y saldos por ubicación.
 - La edición de fichas de activos requiere aplicar la migración incremental
   `20261125150000_asset_profile_editing.sql`.
-- Auditoría visual, asociaciones automáticas de repuestos al mantenimiento, usuarios y
-  reportes siguen en desarrollo.
+- Auditoría visual, alertas de stock mínimo, adjuntos, usuarios y reportes siguen en
+  desarrollo.
 - Sigue [las instrucciones de configuración](docs/setup.md) antes de usar la nueva
   migración en Supabase.
 - La conexión real aún no se ha probado contra el proyecto Supabase de Sky Logic.
@@ -36,6 +36,7 @@ habilitar el acceso seguro.
 - [Flujos transaccionales de mantenimiento](supabase/migrations/20261125134500_maintenance_workflows.sql)
 - [Flujos transaccionales de inventario](supabase/migrations/20261125143000_inventory_workflows.sql)
 - [Edición segura de fichas de activos](supabase/migrations/20261125150000_asset_profile_editing.sql)
+- [Integración de repuestos con mantenimiento](supabase/migrations/20261125153000_maintenance_inventory_integration.sql)
 
 ## Ejecucion local
 

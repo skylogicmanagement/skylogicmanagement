@@ -62,8 +62,9 @@ analítica y los reportes de horas siguen pendientes.
 - Alertas y próximas intervenciones.
 
 Estado: registro de inicio/cierre, bloqueo del activo mientras hay una intervención
-abierta y planes preventivos configurables implementados. Faltan alertas por umbral de
-horas/fecha, repuestos asociados y adjuntos.
+abierta, planes preventivos configurables y uso transaccional de repuestos al cierre
+implementados. Faltan alertas por umbral de horas/fecha, adjuntos y pruebas con datos
+reales de Supabase.
 
 ## Fase 7: Inventario
 
@@ -74,8 +75,8 @@ horas/fecha, repuestos asociados y adjuntos.
 
 Estado: catálogo de artículos, seriales únicos, saldos por ubicación, entradas,
 consumos, instalaciones, traslados y bajas implementados con funciones transaccionales.
-Faltan asociaciones automáticas desde el cierre de mantenimientos, alertas por mínimos,
-adjuntos y pruebas con datos reales de Supabase.
+Los consumos de mantenimiento quedan vinculados a su intervención y activo. Faltan
+alertas por mínimos, adjuntos y pruebas con datos reales de Supabase.
 
 ## Fase 8: Auditoria
 

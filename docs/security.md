@@ -97,6 +97,10 @@ en la base de datos. Cada cambio genera auditoría; las horas de vuelo no se pue
 alterar desde el formulario y los datos de ubicación/responsable quedan bloqueados
 mientras el activo tenga una operación abierta.
 
+El cierre de un mantenimiento con repuestos valida permisos de mantenimiento y
+existencias en la base de datos, con descuento y cierre atómicos. Si cualquier repuesto
+no tiene stock suficiente, la operación completa se revierte sin cerrar la intervención.
+
 Una corrección debe:
 
 1. Conserva el evento original.

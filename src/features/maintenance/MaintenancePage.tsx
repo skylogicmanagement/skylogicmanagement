@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, CalendarClock, Check, ClipboardCheck, Plus, RefreshCw, Wrench, X } from 'lucide-react'
+import { AlertTriangle, CalendarClock, Check, ClipboardCheck, Plus, RefreshCw, Trash2, Wrench, X } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { supabase } from '../../lib/supabase'
 import './maintenance.css'
@@ -34,6 +34,25 @@ type MaintenanceRecord = {
 }
 type Member = { user_id: string; display_name: string }
 type StatusOption = { code: string; name: string }
+type InventoryOption = {
+  item_id: string
+  internal_code: string
+  item_name: string
+  unit: string
+  is_serialized: boolean
+  location_id: string
+  location_name: string
+  quantity_available: number
+}
+type MaintenancePartDraft = {
+  stock_key: string
+  quantity: string
+  movement_type: 'installation' | 'consumption'
+}
+
+function stockKey(option: InventoryOption) {
+  return `${option.item_id}:${option.location_id}`
+}
 
 const releaseStatuses = ['available', 'inspection', 'damaged', 'repair', 'out_of_service']
 
@@ -69,6 +88,8 @@ export function MaintenancePage() {
   const [records, setRecords] = useState<MaintenanceRecord[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [assetStatuses, setAssetStatuses] = useState<StatusOption[]>([])
+  const [inventoryOptions, setInventoryOptions] = useState<InventoryOption[]>([])
+  const [inventoryOptionsError, setInventoryOptionsError] = useState('')
   const [canManage, setCanManage] = useState(false)
   const [canManagePlans, setCanManagePlans] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -103,6 +124,7 @@ export function MaintenancePage() {
     release_asset_status: 'available',
     cost: '',
     next_intervention_at: '',
+    parts: [] as MaintenancePartDraft[],
   })
 
   const loadData = useCallback(async () => {
@@ -213,6 +235,19 @@ export function MaintenancePage() {
     setAssetStatuses(assetStatusesResult.data ?? [])
     setCanManage(managePermission.data === true)
     setCanManagePlans(catalogPermission.data === true)
+    if (managePermission.data) {
+      const { data: inventoryData, error: inventoryError } = await supabase.rpc('get_maintenance_inventory_options', { p_org_id: currentOrgId })
+      if (inventoryError) {
+        setInventoryOptions([])
+        setInventoryOptionsError(inventoryError.message)
+      } else {
+        setInventoryOptions(inventoryData ?? [])
+        setInventoryOptionsError('')
+      }
+    } else {
+      setInventoryOptions([])
+      setInventoryOptionsError('')
+    }
     setLoading(false)
   }, [])
 
@@ -228,6 +263,9 @@ export function MaintenancePage() {
       .channel(`maintenance-${orgId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_records', filter: `org_id=eq.${orgId}` }, () => void loadData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'assets', filter: `org_id=eq.${orgId}` }, () => void loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory_items', filter: `org_id=eq.${orgId}` }, () => void loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory_movements', filter: `org_id=eq.${orgId}` }, () => void loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory_location_balances', filter: `org_id=eq.${orgId}` }, () => void loadData())
       .subscribe((status, subscriptionError) => {
         if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && subscriptionError) {
           setError(subscriptionError.message)
@@ -256,6 +294,9 @@ export function MaintenancePage() {
   const selectedAsset = assets.find((asset) => asset.id === draft.asset_id)
   const filteredPlans = plans.filter((plan) => plan.asset_type_code === selectedAsset?.asset_type_code)
   const memberNames = new Map(members.map((member) => [member.user_id, member.display_name]))
+  const stockOptions = new Map(inventoryOptions.map((option) => [stockKey(option), option]))
+  const incompleteParts = completionDraft.parts.some((part) =>
+    !part.stock_key || !stockOptions.has(part.stock_key) || !Number.isFinite(Number(part.quantity)) || Number(part.quantity) <= 0)
 
   async function createMaintenance(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -289,10 +330,29 @@ export function MaintenancePage() {
   async function completeMaintenance(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!supabase || !orgId || !completing) return
+    const parts: Array<{
+      item_id: string
+      source_location_id: string
+      quantity: number
+      movement_type: 'installation' | 'consumption'
+    }> = []
+    for (const part of completionDraft.parts) {
+      const option = stockOptions.get(part.stock_key)
+      if (!option) {
+        setError('Selecciona un repuesto y ubicación válidos en cada línea.')
+        return
+      }
+      parts.push({
+        item_id: option.item_id,
+        source_location_id: option.location_id,
+        quantity: Number(part.quantity),
+        movement_type: part.movement_type,
+      })
+    }
     setSaving(true)
     setError('')
     setNotice('')
-    const { error: completeError } = await supabase.rpc('complete_maintenance', {
+    const { error: completeError } = await supabase.rpc('complete_maintenance_with_parts', {
       p_org_id: orgId,
       p_maintenance_record_id: completing.id,
       p_activities: completionDraft.activities.trim(),
@@ -300,13 +360,14 @@ export function MaintenancePage() {
       p_release_asset_status: completionDraft.release_asset_status,
       p_cost: completionDraft.cost === '' ? null : Number(completionDraft.cost),
       p_next_intervention_at: completionDraft.next_intervention_at || null,
+      p_parts: parts,
     })
     if (completeError) {
       setError(completeError.message)
     } else {
       setCompleting(null)
       setNotice('Intervención finalizada; el resultado y el estado del activo quedaron registrados.')
-      setCompletionDraft({ activities: '', outcome: '', release_asset_status: 'available', cost: '', next_intervention_at: '' })
+      setCompletionDraft({ activities: '', outcome: '', release_asset_status: 'available', cost: '', next_intervention_at: '', parts: [] })
       await loadData()
     }
     setSaving(false)
@@ -378,7 +439,7 @@ export function MaintenancePage() {
                       <h3>{assetNames[record.asset_id] ?? 'Activo'}</h3>
                       <p>{maintenanceTypes.find(({ code }) => code === record.maintenance_type)?.name ?? record.maintenance_type} · {formatDate(record.performed_at)}</p>
                     </div>
-                    {isOpen && canManage && <button className="primary-button" type="button" onClick={() => { setCompletionDraft((current) => ({ ...current, release_asset_status: 'available' })); setCompleting(record) }}><Check size={15} /> Finalizar</button>}
+                    {isOpen && canManage && <button className="primary-button" type="button" onClick={() => { setCompletionDraft({ activities: '', outcome: '', release_asset_status: 'available', cost: '', next_intervention_at: '', parts: [] }); setError(''); setCompleting(record) }}><Check size={15} /> Finalizar</button>}
                   </div>
                   <div className="maintenance-record-details">
                     <div><small>Responsable técnico</small><span>{technician ?? record.external_technician ?? 'Sin asignar'}{record.external_company ? ` · ${record.external_company}` : ''}</span></div>
@@ -451,16 +512,41 @@ export function MaintenancePage() {
           </MaintenanceModal>
         )}
         {completing && (
-          <MaintenanceModal title={`Finalizar · ${assetNames[completing.asset_id] ?? 'Activo'}`} onClose={() => setCompleting(null)} reducedMotion={Boolean(reduceMotion)}>
+          <MaintenanceModal title={`Finalizar · ${assetNames[completing.asset_id] ?? 'Activo'}`} onClose={() => { if (!saving) setCompleting(null) }} reducedMotion={Boolean(reduceMotion)}>
             <form className="maintenance-form" onSubmit={(event) => void completeMaintenance(event)}>
               <label>Actividades realizadas<textarea required rows={3} value={completionDraft.activities} onChange={(event) => setCompletionDraft((current) => ({ ...current, activities: event.target.value }))} /></label>
               <label>Resultado<textarea required rows={2} value={completionDraft.outcome} onChange={(event) => setCompletionDraft((current) => ({ ...current, outcome: event.target.value }))} /></label>
+              {error && <div className="inline-error" role="alert"><AlertTriangle size={16} />{error}</div>}
               <div className="maintenance-form-grid">
                 <label>Estado del activo al salir<select required value={completionDraft.release_asset_status} onChange={(event) => setCompletionDraft((current) => ({ ...current, release_asset_status: event.target.value }))}>{assetStatuses.map((status) => <option key={status.code} value={status.code}>{status.name}</option>)}</select></label>
                 <label>Costo (COP)<input type="number" min="0" step="1" value={completionDraft.cost} onChange={(event) => setCompletionDraft((current) => ({ ...current, cost: event.target.value }))} placeholder="Opcional" /></label>
               </div>
               <label>Próxima intervención (opcional)<input type="date" value={completionDraft.next_intervention_at} onChange={(event) => setCompletionDraft((current) => ({ ...current, next_intervention_at: event.target.value }))} /></label>
-              <div className="maintenance-form-footer"><button className="secondary-button" type="button" onClick={() => setCompleting(null)}>Cancelar</button><button className="primary-button" type="submit" disabled={saving}>{saving ? 'Finalizando…' : 'Confirmar cierre'}</button></div>
+              <section className="maintenance-parts-section" aria-labelledby="maintenance-parts-title">
+                <div className="maintenance-parts-heading">
+                  <div><h3 id="maintenance-parts-title">Repuestos utilizados</h3><p>El stock se descuenta solo al confirmar el cierre.</p></div>
+                  <button className="secondary-button" type="button" onClick={() => setCompletionDraft((current) => ({ ...current, parts: [...current.parts, { stock_key: '', quantity: '', movement_type: 'installation' }] }))} disabled={!inventoryOptions.length || saving}><Plus size={14} /> Agregar repuesto</button>
+                </div>
+                {inventoryOptionsError && <p className="maintenance-form-hint" role="status">No se pudo cargar el stock disponible: {inventoryOptionsError}</p>}
+                {!inventoryOptionsError && !inventoryOptions.length && <p className="maintenance-form-hint">No hay repuestos con existencia en ubicaciones activas.</p>}
+                {completionDraft.parts.map((part, index) => {
+                  const selectedOption = stockOptions.get(part.stock_key)
+                  const remainingQuantity = selectedOption
+                    ? Math.max(0, Number(selectedOption.quantity_available) - completionDraft.parts.reduce((sum, other, otherIndex) =>
+                      otherIndex !== index && other.stock_key === part.stock_key ? sum + (Number(other.quantity) || 0) : sum, 0))
+                    : 0
+                  return (
+                    <div className="maintenance-part-row" key={`maintenance-part-${index}`}>
+                      <label>Repuesto y ubicación<select required value={part.stock_key} onChange={(event) => setCompletionDraft((current) => ({ ...current, parts: current.parts.map((entry, entryIndex) => entryIndex === index ? { ...entry, stock_key: event.target.value, quantity: '' } : entry) }))}><option value="">Selecciona repuesto</option>{inventoryOptions.map((option) => <option key={stockKey(option)} value={stockKey(option)}>{option.internal_code} · {option.item_name} · {option.location_name} · {option.quantity_available} {option.unit}</option>)}</select></label>
+                      <label>Tipo<select value={part.movement_type} onChange={(event) => setCompletionDraft((current) => ({ ...current, parts: current.parts.map((entry, entryIndex) => entryIndex === index ? { ...entry, movement_type: event.target.value === 'consumption' ? 'consumption' : 'installation' } : entry) }))}><option value="installation">Instalado</option><option value="consumption">Consumido</option></select></label>
+                      <label>Cantidad{selectedOption ? ` (${selectedOption.unit})` : ''}<input required type="number" min={selectedOption?.is_serialized ? '1' : '0.001'} max={selectedOption ? remainingQuantity : undefined} step={selectedOption?.is_serialized ? '1' : '0.001'} value={part.quantity} onChange={(event) => setCompletionDraft((current) => ({ ...current, parts: current.parts.map((entry, entryIndex) => entryIndex === index ? { ...entry, quantity: event.target.value } : entry) }))} /></label>
+                      <button className="icon-button maintenance-part-remove" type="button" aria-label="Quitar repuesto" onClick={() => setCompletionDraft((current) => ({ ...current, parts: current.parts.filter((_, entryIndex) => entryIndex !== index) }))}><Trash2 size={15} /></button>
+                      {selectedOption && <small className="maintenance-part-availability">Disponible para esta intervención: {remainingQuantity} {selectedOption.unit}</small>}
+                    </div>
+                  )
+                })}
+              </section>
+              <div className="maintenance-form-footer"><button className="secondary-button" type="button" onClick={() => setCompleting(null)} disabled={saving}>Cancelar</button><button className="primary-button" type="submit" disabled={saving || incompleteParts}>{saving ? 'Finalizando…' : 'Confirmar cierre'}</button></div>
             </form>
           </MaintenanceModal>
         )}

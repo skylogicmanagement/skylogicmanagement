@@ -419,6 +419,38 @@ export interface Database {
         }
         Returns: string
       }
+      get_maintenance_inventory_options: {
+        Args: { p_org_id: string }
+        Returns: Array<{
+          item_id: string
+          internal_code: string
+          item_name: string
+          unit: string
+          is_serialized: boolean
+          location_id: string
+          location_name: string
+          quantity_available: number
+        }>
+      }
+      complete_maintenance_with_parts: {
+        Args: {
+          p_org_id: string
+          p_maintenance_record_id: string
+          p_activities: string
+          p_outcome: string
+          p_release_asset_status: string
+          p_cost?: number | null
+          p_completed_at?: string
+          p_next_intervention_at?: string | null
+          p_parts?: Array<{
+            item_id: string
+            source_location_id: string
+            quantity: number
+            movement_type: 'installation' | 'consumption'
+          }>
+        }
+        Returns: string
+      }
       create_inventory_item: {
         Args: {
           p_org_id: string
