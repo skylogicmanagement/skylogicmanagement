@@ -11,6 +11,7 @@ import {
   ClipboardList,
   Clock3,
   Command,
+  ContactRound,
   Drone,
   Gauge,
   LayoutDashboard,
@@ -32,6 +33,7 @@ import { AssetsPage } from './features/assets/AssetsPage'
 import { OperationsPage } from './features/operations/OperationsPage'
 import { MaintenancePage } from './features/maintenance/MaintenancePage'
 import { InventoryPage } from './features/inventory/InventoryPage'
+import { PilotsPage } from './features/pilots/PilotsPage'
 import { supabase, supabaseConfigError } from './lib/supabase'
 
 const FlightChart = lazy(() => import('./components/FlightChart'))
@@ -49,6 +51,7 @@ const navigation = [
   { label: 'Resumen', icon: LayoutDashboard, section: 'GENERAL' },
   { label: 'Activos', icon: Boxes, section: 'GESTIÓN' },
   { label: 'Operaciones', icon: Plane, section: 'GESTIÓN' },
+  { label: 'Pilotos', icon: ContactRound, section: 'GESTIÓN' },
   { label: 'Mantenimiento', icon: Wrench, section: 'GESTIÓN' },
   { label: 'Inventario', icon: PackageCheck, section: 'GESTIÓN' },
   { label: 'Auditoría', icon: ShieldCheck, section: 'CONTROL' },
@@ -480,6 +483,8 @@ function Workspace({ session }: { session: Session }) {
             <AssetsPage userId={session.user.id} />
           ) : page === 'Operaciones' ? (
             <OperationsPage userId={session.user.id} />
+          ) : page === 'Pilotos' ? (
+            <PilotsPage userId={session.user.id} />
           ) : page === 'Mantenimiento' ? (
             <MaintenancePage />
           ) : page === 'Inventario' ? (

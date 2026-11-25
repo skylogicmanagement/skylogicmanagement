@@ -19,6 +19,7 @@
    - `supabase/migrations/20261125153000_maintenance_inventory_integration.sql`
    - `supabase/migrations/20261125154500_maintenance_alerts.sql`
    - `supabase/migrations/20261125160000_asset_assignment_workflows.sql`
+   - `supabase/migrations/20261125161000_pilot_management.sql`
    La migración de alertas usa `create or replace` y se puede volver a ejecutar para
    actualizar la función si se corrige. Si ya la ejecutaste y las alertas muestran un
    error de columna ambigua, vuelve a ejecutar únicamente
@@ -31,6 +32,11 @@
    el historial al liberar y sincroniza los responsables que ya estén en las fichas.
    Si las migraciones anteriores ya se aplicaron, ejecuta únicamente
    `20261125160000_asset_assignment_workflows.sql`; no la ejecutes más de una vez.
+   Si ya aplicaste la migración de asignaciones, aplica únicamente
+   `20261125161000_pilot_management.sql`. Si aún no la aplicaste, ejecuta primero
+   `20261125160000_asset_assignment_workflows.sql` y después la migración de pilotos,
+   cada una una sola vez. La nueva migración crea el catálogo privado de pilotos y
+   registra un piloto por cada dron de la operación; no crea cuentas de Supabase Auth.
 4. Invita a la primera cuenta desde Authentication. No habilites el registro público.
 5. Obtén el UUID de esa cuenta en Authentication y ejecuta, reemplazando el texto
    marcador:

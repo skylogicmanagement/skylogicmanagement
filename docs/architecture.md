@@ -89,6 +89,8 @@ skylogicmanagement/
     features/
       assets/
         AssetsPage.tsx
+      pilots/
+        PilotsPage.tsx
       maintenance/
         MaintenancePage.tsx
         maintenance.css
@@ -111,6 +113,7 @@ skylogicmanagement/
       20261125153000_maintenance_inventory_integration.sql
       20261125154500_maintenance_alerts.sql
       20261125160000_asset_assignment_workflows.sql
+      20261125161000_pilot_management.sql
   .github/
     workflows/
       deploy-pages.yml

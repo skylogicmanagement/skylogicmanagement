@@ -57,7 +57,9 @@ Supabase.
 
 Estado: salida transaccional, registro de fincas, perfiles operativos, devoluciones
 parciales y captura del horómetro al regreso de cada dron implementados. La consulta
-analítica y los reportes de horas siguen pendientes.
+analítica y los reportes de horas siguen pendientes. El catálogo de pilotos permite
+administrar personal sin cuenta de acceso, asignar uno por cada dron de una operación y
+registrar cambios de piloto mientras el dron siga en campo.
 
 ## Fase 6: Mantenimiento
 

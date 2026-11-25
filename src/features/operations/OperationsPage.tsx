@@ -7,6 +7,7 @@ import './operations.css'
 type Farm = { id: string; name: string; municipality: string | null }
 type Asset = { id: string; internal_code: string; name: string; asset_type_code: string; status: string }
 type Member = { user_id: string; display_name: string }
+type Pilot = { id: string; full_name: string; phone: string | null; license_number: string | null; active: boolean }
 type Location = { id: string; name: string }
 type Operation = {
   id: string
@@ -23,10 +24,11 @@ type OperationAsset = {
   id: string
   operation_id: string
   asset_id: string
+  pilot_id: string | null
   returned_at: string | null
   return_condition: string | null
 }
-type OperationAssetView = OperationAsset & { asset: Asset | null }
+type OperationAssetView = OperationAsset & { asset: Asset | null; pilot: Pilot | null }
 
 const returnConditions = [
   { code: 'good', label: 'En buen estado' },
@@ -56,6 +58,7 @@ export function OperationsPage({ userId }: { userId: string }) {
   const [farms, setFarms] = useState<Farm[]>([])
   const [assets, setAssets] = useState<Asset[]>([])
   const [members, setMembers] = useState<Member[]>([])
+  const [pilots, setPilots] = useState<Pilot[]>([])
   const [locations, setLocations] = useState<Location[]>([])
   const [canManage, setCanManage] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -66,6 +69,7 @@ export function OperationsPage({ userId }: { userId: string }) {
   const [createOpen, setCreateOpen] = useState(false)
   const [farmOpen, setFarmOpen] = useState(false)
   const [returning, setReturning] = useState<OperationAssetView | null>(null)
+  const [assigningPilotAssetId, setAssigningPilotAssetId] = useState('')
   const [profileName, setProfileName] = useState('')
   const [needsProfile, setNeedsProfile] = useState(false)
   const [draft, setDraft] = useState({
@@ -78,6 +82,7 @@ export function OperationsPage({ userId }: { userId: string }) {
     delivered_by_user_id: userId,
     received_by_user_id: userId,
     asset_ids: [] as string[],
+    pilot_by_drone: {} as Record<string, string>,
     departure_condition: '',
     notes: '',
   })
@@ -117,7 +122,7 @@ export function OperationsPage({ userId }: { userId: string }) {
 
     const currentOrgId = membership.org_id
     setOrgId(currentOrgId)
-    const [operationsResult, farmsResult, assetsResult, membershipsResult, profilesResult, locationsResult, permissionResult] =
+    const [operationsResult, farmsResult, assetsResult, membershipsResult, profilesResult, pilotsResult, locationsResult, permissionResult] =
       await Promise.all([
         supabase
           .from('operations')
@@ -148,6 +153,11 @@ export function OperationsPage({ userId }: { userId: string }) {
           .select('user_id, display_name')
           .eq('org_id', currentOrgId),
         supabase
+          .from('pilots')
+          .select('id, full_name, phone, license_number, active')
+          .eq('org_id', currentOrgId)
+          .order('full_name'),
+        supabase
           .from('locations')
           .select('id, name')
           .eq('org_id', currentOrgId)
@@ -164,6 +174,7 @@ export function OperationsPage({ userId }: { userId: string }) {
       ?? assetsResult.error
       ?? membershipsResult.error
       ?? profilesResult.error
+      ?? pilotsResult.error
       ?? locationsResult.error
       ?? permissionResult.error
     if (firstError) {
@@ -182,7 +193,7 @@ export function OperationsPage({ userId }: { userId: string }) {
     const openAssetsResult = operationIds.length
       ? await supabase
         .from('operation_assets')
-        .select('id, operation_id, asset_id, returned_at, return_condition')
+        .select('id, operation_id, asset_id, pilot_id, returned_at, return_condition')
         .eq('org_id', currentOrgId)
         .in('operation_id', operationIds)
       : { data: [], error: null }
@@ -210,11 +221,18 @@ export function OperationsPage({ userId }: { userId: string }) {
     }
 
     const assetById = new Map((relatedAssetsResult.data ?? []).map((asset) => [asset.id, asset]))
+    const pilotRows = pilotsResult.data ?? []
+    const pilotById = new Map(pilotRows.map((pilot) => [pilot.id, pilot]))
     setOperations(operationRows)
-    setOperationAssets(assetRows.map((row) => ({ ...row, asset: assetById.get(row.asset_id) ?? null })))
+    setOperationAssets(assetRows.map((row) => ({
+      ...row,
+      asset: assetById.get(row.asset_id) ?? null,
+      pilot: row.pilot_id ? pilotById.get(row.pilot_id) ?? null : null,
+    })))
     setFarms(farmsResult.data ?? [])
     setAssets(assetsResult.data ?? [])
     setMembers(activeMembers)
+    setPilots(pilotRows)
     setLocations(locationsResult.data ?? [])
     setCanManage(permissionResult.data === true)
     setNeedsProfile(!profileById.has(userId))
@@ -234,6 +252,7 @@ export function OperationsPage({ userId }: { userId: string }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'operations', filter: `org_id=eq.${orgId}` }, () => void loadData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'operation_assets', filter: `org_id=eq.${orgId}` }, () => void loadData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'assets', filter: `org_id=eq.${orgId}` }, () => void loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pilots', filter: `org_id=eq.${orgId}` }, () => void loadData())
       .subscribe((status, subscriptionError) => {
         if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && subscriptionError) {
           setError(subscriptionError.message)
@@ -323,7 +342,7 @@ export function OperationsPage({ userId }: { userId: string }) {
     setError('')
     setNotice('')
     const departureAt = new Date(draft.departure_at)
-    const { error: createError } = await supabase.rpc('create_operation_with_assets', {
+    const { error: createError } = await supabase.rpc('create_operation_with_pilots', {
       p_org_id: orgId,
       p_farm_id: draft.farm_id,
       p_asset_ids: draft.asset_ids,
@@ -336,6 +355,9 @@ export function OperationsPage({ userId }: { userId: string }) {
       p_field_location: draft.field_location.trim() || null,
       p_departure_at: departureAt.toISOString(),
       p_notes: draft.notes.trim() || null,
+      p_pilot_assignments: draft.asset_ids
+        .filter((assetId) => drones.some((drone) => drone.id === assetId))
+        .map((assetId) => ({ asset_id: assetId, pilot_id: draft.pilot_by_drone[assetId] })),
     })
     if (createError) {
       setError(createError.message)
@@ -344,6 +366,7 @@ export function OperationsPage({ userId }: { userId: string }) {
       setDraft((current) => ({
         ...current,
         asset_ids: [],
+        pilot_by_drone: {},
         departure_condition: '',
         departure_at: localDateTimeValue(),
         notes: '',
@@ -352,6 +375,24 @@ export function OperationsPage({ userId }: { userId: string }) {
       await loadData()
     }
     setSaving(false)
+  }
+
+  async function assignPilot(operationAsset: OperationAssetView, pilotId: string) {
+    if (!supabase || !orgId || !pilotId) return
+    setAssigningPilotAssetId(operationAsset.id)
+    setError('')
+    const { error: assignmentError } = await supabase.rpc('set_operation_drone_pilot', {
+      p_org_id: orgId,
+      p_operation_asset_id: operationAsset.id,
+      p_pilot_id: pilotId,
+    })
+    if (assignmentError) {
+      setError(assignmentError.message)
+    } else {
+      setNotice('Piloto asignado al dron en esta operación.')
+      await loadData()
+    }
+    setAssigningPilotAssetId('')
   }
 
   async function returnAsset(event: React.FormEvent<HTMLFormElement>) {
@@ -392,6 +433,9 @@ export function OperationsPage({ userId }: { userId: string }) {
       asset_ids: current.asset_ids.includes(assetId)
         ? current.asset_ids.filter((id) => id !== assetId)
         : [...current.asset_ids, assetId],
+      pilot_by_drone: current.asset_ids.includes(assetId)
+        ? Object.fromEntries(Object.entries(current.pilot_by_drone).filter(([id]) => id !== assetId))
+        : current.pilot_by_drone,
     }))
   }
 
@@ -465,6 +509,26 @@ export function OperationsPage({ userId }: { userId: string }) {
                         <span className={`asset-type-mark ${item.asset?.asset_type_code === 'drone' ? 'drone-mark' : ''}`}>{item.asset?.asset_type_code === 'drone' ? 'DR' : 'EQ'}</span>
                         <span><strong>{item.asset?.name ?? 'Activo'}</strong><small>{item.asset?.internal_code ?? item.asset_id.slice(0, 8)}</small></span>
                       </div>
+                      {item.asset?.asset_type_code === 'drone' && (
+                        <div className="operation-pilot-field">
+                          <label htmlFor={`pilot-${item.id}`}>Piloto</label>
+                          {canManage && !item.returned_at ? (
+                            <select
+                              id={`pilot-${item.id}`}
+                              value={item.pilot_id ?? ''}
+                              disabled={assigningPilotAssetId === item.id || !pilots.some((pilot) => pilot.active)}
+                              onChange={(event) => void assignPilot(item, event.target.value)}
+                            >
+                              <option value="">{pilots.some((pilot) => pilot.active) ? 'Selecciona piloto' : 'Registra un piloto primero'}</option>
+                              {pilots.filter((pilot) => pilot.active || pilot.id === item.pilot_id).map((pilot) => (
+                                <option key={pilot.id} value={pilot.id}>{pilot.full_name}{pilot.active ? '' : ' (inactivo)'}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <strong>{item.pilot?.full_name ?? 'Sin piloto asignado'}</strong>
+                          )}
+                        </div>
+                      )}
                       {item.returned_at ? (
                         <span className={`return-chip return-${item.return_condition ?? 'good'}`}>{returnConditions.find(({ code }) => code === item.return_condition)?.label ?? 'Recibido'} · {formatDate(item.returned_at)}</span>
                       ) : (
@@ -501,10 +565,35 @@ export function OperationsPage({ userId }: { userId: string }) {
               </div>
               <label>Fecha y hora de salida<input type="datetime-local" required value={draft.departure_at} onChange={(event) => setDraft((current) => ({ ...current, departure_at: event.target.value }))} /></label>
               <AssetChecklist assets={assets} selected={draft.asset_ids} onToggle={toggleAsset} />
+              {draft.asset_ids.some((assetId) => drones.some((drone) => drone.id === assetId)) && (
+                <fieldset className="pilot-assignment-list">
+                  <legend>Pilotos por dron</legend>
+                  {draft.asset_ids.filter((assetId) => drones.some((drone) => drone.id === assetId)).map((droneId) => {
+                    const drone = drones.find(({ id }) => id === droneId)
+                    return (
+                      <label key={droneId}>
+                        {drone?.name ?? 'Dron'}
+                        <select
+                          required
+                          value={draft.pilot_by_drone[droneId] ?? ''}
+                          onChange={(event) => setDraft((current) => ({
+                            ...current,
+                            pilot_by_drone: { ...current.pilot_by_drone, [droneId]: event.target.value },
+                          }))}
+                        >
+                          <option value="">Selecciona un piloto</option>
+                          {pilots.filter((pilot) => pilot.active).map((pilot) => <option key={pilot.id} value={pilot.id}>{pilot.full_name}</option>)}
+                        </select>
+                      </label>
+                    )
+                  })}
+                  {!pilots.some((pilot) => pilot.active) && <p className="form-hint">Registra y activa al menos un piloto en la sección Pilotos.</p>}
+                </fieldset>
+              )}
               <label>Condición al salir<textarea rows={2} required maxLength={500} value={draft.departure_condition} onChange={(event) => setDraft((current) => ({ ...current, departure_condition: event.target.value }))} placeholder="Describe la condición de los activos seleccionados" /></label>
               <PeopleFields members={members} values={draft} onChange={(key, value) => setDraft((current) => ({ ...current, [key]: value }))} />
               <label>Observaciones<textarea rows={3} value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} /></label>
-              <div className="operation-form-footer"><button className="secondary-button" type="button" onClick={() => setCreateOpen(false)}>Cancelar</button><button className="primary-button" type="submit" disabled={saving || !draft.asset_ids.some((id) => drones.some((drone) => drone.id === id))}>{saving ? 'Registrando…' : 'Confirmar salida'}</button></div>
+              <div className="operation-form-footer"><button className="secondary-button" type="button" onClick={() => setCreateOpen(false)}>Cancelar</button><button className="primary-button" type="submit" disabled={saving || !draft.asset_ids.some((id) => drones.some((drone) => drone.id === id)) || !pilots.some((pilot) => pilot.active)}>{saving ? 'Registrando…' : 'Confirmar salida'}</button></div>
               {farms.length === 0 && <p className="form-hint">Registra una finca antes de crear una operación.</p>}
             </form>
           </Modal>
@@ -574,13 +663,13 @@ function PeopleFields({
   returning = false,
 }: {
   members: Member[]
-  values: Record<string, string | string[]>
+  values: Record<string, string | string[] | Record<string, string>>
   onChange: (key: string, value: string) => void
   returning?: boolean
 }) {
   const fields = returning
     ? [['returned_by_user_id', 'Entrega'], ['received_by_user_id', 'Recibe']]
-    : [['operator_user_id', 'Operador'], ['responsible_user_id', 'Responsable'], ['delivered_by_user_id', 'Entrega'], ['received_by_user_id', 'Recibe']]
+    : [['operator_user_id', 'Operador de cuenta'], ['responsible_user_id', 'Responsable'], ['delivered_by_user_id', 'Entrega'], ['received_by_user_id', 'Recibe']]
   return (
     <div className="people-fields-grid">
       {fields.map(([key, label]) => (

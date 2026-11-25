@@ -42,6 +42,13 @@ Las referencias a responsables, operadores, entregas y recepciones se validan en
 base de datos contra membresías activas de la organización. Los nombres visibles se
 guardan en `user_profiles`; no se expone el catálogo interno de Supabase Auth.
 
+Los pilotos de campo no tienen cuenta ni membresía de autenticación. Sus datos se guardan
+en `pilots`, protegida por RLS; la consulta requiere permiso de operaciones y la creación,
+edición, activación y asignación requieren `operations.manage`. La asignación se valida
+en PostgreSQL para que corresponda a un dron de la organización dentro de una operación
+abierta. La función antigua de creación de operaciones se revoca al instalar la migración
+de pilotos para que las salidas nuevas no omitan la asignación transaccional de pilotos.
+
 ## Operaciones concurrentes
 
 Las asignaciones incompatibles deben detectarse y prevenirse dentro de PostgreSQL.

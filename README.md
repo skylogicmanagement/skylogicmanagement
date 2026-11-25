@@ -16,13 +16,16 @@ habilitar el acceso seguro.
   vida cronológica; asignación manual de responsables y componentes a drones con
   historial de liberaciones.
 - Fase 5 iniciada: operaciones, salidas, devoluciones parciales, lectura de horómetro y
-  fincas con formularios transaccionales y sincronización en tiempo real.
+  fincas con formularios transaccionales y sincronización en tiempo real. Los pilotos
+  se administran sin cuentas de acceso y se asignan por dron y operación.
 - Fases 4, 6 y 7 iniciadas: edición de fichas, mantenimiento transaccional y descuento
   atómico de repuestos, con inventario serializado y saldos por ubicación.
 - La edición de fichas de activos requiere aplicar la migración incremental
   `20261125150000_asset_profile_editing.sql`.
 - Las asignaciones manuales requieren aplicar una sola vez
   `20261125160000_asset_assignment_workflows.sql`.
+- La administración y asignación de pilotos requiere aplicar
+  `20261125161000_pilot_management.sql` después de la migración de asignaciones.
 - Auditoría visual, alertas de stock mínimo, adjuntos, usuarios y reportes siguen en
   desarrollo.
 - Sigue [las instrucciones de configuración](docs/setup.md) antes de usar la nueva
@@ -43,6 +46,7 @@ habilitar el acceso seguro.
 - [Integración de repuestos con mantenimiento](supabase/migrations/20261125153000_maintenance_inventory_integration.sql)
 - [Alertas preventivas de mantenimiento](supabase/migrations/20261125154500_maintenance_alerts.sql)
 - [Flujos de asignación de activos](supabase/migrations/20261125160000_asset_assignment_workflows.sql)
+- [Administración de pilotos y asignación por operación](supabase/migrations/20261125161000_pilot_management.sql)
 
 ## Ejecucion local
 

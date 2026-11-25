@@ -107,6 +107,30 @@ export interface Database {
           updated_at?: string
         }
       >
+      pilots: Table<
+        {
+          id: string
+          org_id: string
+          full_name: string
+          phone: string | null
+          license_number: string | null
+          notes: string | null
+          active: boolean
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        },
+        {
+          org_id: string
+          full_name: string
+          phone?: string | null
+          license_number?: string | null
+          notes?: string | null
+          active?: boolean
+          created_by?: string | null
+          updated_at?: string
+        }
+      >
       farms: Table<
         {
           id: string
@@ -177,6 +201,7 @@ export interface Database {
           org_id: string
           operation_id: string
           asset_id: string
+          pilot_id: string | null
           delivered_by_user_id: string | null
           received_by_user_id: string | null
           returned_by_user_id: string | null
@@ -420,6 +445,32 @@ export interface Database {
           p_field_location?: string | null
           p_departure_at?: string
           p_notes?: string | null
+        }
+        Returns: string
+      }
+      create_operation_with_pilots: {
+        Args: {
+          p_org_id: string
+          p_farm_id: string
+          p_asset_ids: string[]
+          p_operator_user_id: string
+          p_responsible_user_id: string
+          p_delivered_by_user_id: string
+          p_received_by_user_id: string
+          p_departure_condition: string
+          p_municipality?: string | null
+          p_field_location?: string | null
+          p_departure_at?: string
+          p_notes?: string | null
+          p_pilot_assignments?: Array<{ asset_id: string; pilot_id: string }>
+        }
+        Returns: string
+      }
+      set_operation_drone_pilot: {
+        Args: {
+          p_org_id: string
+          p_operation_asset_id: string
+          p_pilot_id: string
         }
         Returns: string
       }

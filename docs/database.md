@@ -22,6 +22,7 @@ erDiagram
     FARMS ||--o{ OPERATIONS : destino
     OPERATIONS ||--o{ OPERATION_ASSETS : incluye
     ASSETS ||--o{ OPERATION_ASSETS : participa
+    PILOTS ||--o{ OPERATION_ASSETS : opera
     OPERATIONS ||--o{ FLIGHT_LOGS : registra
     ASSETS ||--o{ FLIGHT_LOGS : dron
 
@@ -135,11 +136,22 @@ estado, operador principal, responsable, entrega y recepcion.
 `operation_assets` representa cada activo incluido en una operacion. Conserva estado de
 salida, estado de regreso, entrega, recepcion, devolucion parcial y observaciones.
 
+`pilots` es el catálogo de personal de vuelo sin usuario de autenticación. Guarda nombre,
+teléfono, licencia, observaciones y estado activo. `operation_assets.pilot_id` identifica
+al piloto asignado a cada dron en esa operación; no crea una relación permanente con el
+activo, por lo que un mismo dron puede tener otro piloto en una salida futura. Los cambios
+de piloto durante una operación abierta usan una función autorizada y quedan en auditoría.
+Al desactivar a una persona se conservan sus asignaciones históricas.
+
 Una operacion no se considera cerrada hasta recibir y verificar todos sus activos.
 `create_operation_with_assets` registra la salida y actualiza la disponibilidad de todos
 los activos en una única transacción. `return_operation_asset` registra cada regreso
 parcial; para drones, el regreso y la lectura del horómetro se registran juntos en la
 misma transacción. La operación se cierra cuando retorna el último activo.
+La migración `20261125161000_pilot_management.sql` agrega `create_operation_with_pilots`,
+que crea la salida y valida/asigna un piloto activo a cada dron dentro de la misma
+transacción. La reasignación de un dron que sigue en campo se realiza mediante
+`set_operation_drone_pilot`.
 
 ### Vuelo
 
