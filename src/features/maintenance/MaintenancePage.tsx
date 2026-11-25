@@ -1,0 +1,491 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { AlertTriangle, CalendarClock, Check, ClipboardCheck, Plus, RefreshCw, Wrench, X } from 'lucide-react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { supabase } from '../../lib/supabase'
+import './maintenance.css'
+
+type Asset = { id: string; internal_code: string; name: string; asset_type_code: string; status: string }
+type AssetType = { code: string; name: string }
+type MaintenanceType = { code: string; name: string }
+type MaintenancePlan = {
+  id: string
+  asset_type_code: string
+  name: string
+  interval_flight_hours: number | null
+  interval_days: number | null
+}
+type MaintenanceRecord = {
+  id: string
+  asset_id: string
+  plan_id: string | null
+  maintenance_type: string
+  status: 'open' | 'in_progress' | 'completed' | 'cancelled'
+  performed_at: string
+  completed_at: string | null
+  technician_user_id: string | null
+  external_company: string | null
+  external_technician: string | null
+  diagnosis: string | null
+  activities: string | null
+  outcome: string | null
+  cost: number | null
+  next_intervention_at: string | null
+  notes: string | null
+}
+type Member = { user_id: string; display_name: string }
+type StatusOption = { code: string; name: string }
+
+const releaseStatuses = ['available', 'inspection', 'damaged', 'repair', 'out_of_service']
+
+function localDateTimeValue() {
+  const date = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000)
+  return date.toISOString().slice(0, 16)
+}
+
+function formatDate(value: string | null) {
+  if (!value) return 'Sin programar'
+  return new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+}
+
+function formatCurrency(value: number | null) {
+  if (value === null) return 'Sin costo registrado'
+  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value)
+}
+
+function statusLabel(status: MaintenanceRecord['status']) {
+  if (status === 'completed') return 'Finalizado'
+  if (status === 'cancelled') return 'Cancelado'
+  if (status === 'in_progress') return 'En progreso'
+  return 'Abierto'
+}
+
+export function MaintenancePage() {
+  const reduceMotion = useReducedMotion()
+  const [orgId, setOrgId] = useState('')
+  const [assets, setAssets] = useState<Asset[]>([])
+  const [assetTypes, setAssetTypes] = useState<AssetType[]>([])
+  const [maintenanceTypes, setMaintenanceTypes] = useState<MaintenanceType[]>([])
+  const [plans, setPlans] = useState<MaintenancePlan[]>([])
+  const [records, setRecords] = useState<MaintenanceRecord[]>([])
+  const [members, setMembers] = useState<Member[]>([])
+  const [assetStatuses, setAssetStatuses] = useState<StatusOption[]>([])
+  const [canManage, setCanManage] = useState(false)
+  const [canManagePlans, setCanManagePlans] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [query, setQuery] = useState('')
+  const [createOpen, setCreateOpen] = useState(false)
+  const [planOpen, setPlanOpen] = useState(false)
+  const [completing, setCompleting] = useState<MaintenanceRecord | null>(null)
+  const [assetNames, setAssetNames] = useState<Record<string, string>>({})
+  const [draft, setDraft] = useState({
+    asset_id: '',
+    maintenance_type: '',
+    plan_id: '',
+    performed_at: localDateTimeValue(),
+    technician_user_id: '',
+    external_company: '',
+    external_technician: '',
+    diagnosis: '',
+    notes: '',
+  })
+  const [planDraft, setPlanDraft] = useState({
+    asset_type_code: '',
+    name: '',
+    interval_flight_hours: '',
+    interval_days: '',
+  })
+  const [completionDraft, setCompletionDraft] = useState({
+    activities: '',
+    outcome: '',
+    release_asset_status: 'available',
+    cost: '',
+    next_intervention_at: '',
+  })
+
+  const loadData = useCallback(async () => {
+    if (!supabase) return
+    setError('')
+    const { data: authData, error: authError } = await supabase.auth.getUser()
+    if (authError || !authData.user) {
+      setError(authError?.message ?? 'No se encontró la sesión activa.')
+      setLoading(false)
+      return
+    }
+    const currentUserId = authData.user.id
+    const { data: membership, error: membershipError } = await supabase
+      .from('memberships')
+      .select('org_id')
+      .eq('user_id', currentUserId)
+      .eq('active', true)
+      .limit(1)
+      .maybeSingle()
+    if (membershipError || !membership) {
+      setError(membershipError?.message ?? 'Tu cuenta no tiene una membresía activa.')
+      setLoading(false)
+      return
+    }
+
+    const currentOrgId = membership.org_id
+    setOrgId(currentOrgId)
+    const [
+      assetsResult,
+      assetTypesResult,
+      maintenanceTypesResult,
+      plansResult,
+      recordsResult,
+      membershipsResult,
+      profilesResult,
+      assetStatusesResult,
+      managePermission,
+      catalogPermission,
+    ] = await Promise.all([
+      supabase.from('assets')
+        .select('id, internal_code, name, asset_type_code, status')
+        .eq('org_id', currentOrgId)
+        .eq('active', true)
+        .order('internal_code'),
+      supabase.from('asset_types')
+        .select('code, name')
+        .eq('org_id', currentOrgId)
+        .eq('active', true)
+        .order('name'),
+      supabase.from('maintenance_types')
+        .select('code, name')
+        .eq('org_id', currentOrgId)
+        .eq('active', true)
+        .order('name'),
+      supabase.from('maintenance_plans')
+        .select('id, asset_type_code, name, interval_flight_hours, interval_days')
+        .eq('org_id', currentOrgId)
+        .eq('active', true)
+        .order('name'),
+      supabase.from('maintenance_records')
+        .select('id, asset_id, plan_id, maintenance_type, status, performed_at, completed_at, technician_user_id, external_company, external_technician, diagnosis, activities, outcome, cost, next_intervention_at, notes')
+        .eq('org_id', currentOrgId)
+        .order('performed_at', { ascending: false })
+        .limit(100),
+      supabase.from('memberships')
+        .select('user_id')
+        .eq('org_id', currentOrgId)
+        .eq('active', true),
+      supabase.from('user_profiles')
+        .select('user_id, display_name')
+        .eq('org_id', currentOrgId),
+      supabase.from('asset_statuses')
+        .select('code, name')
+        .eq('org_id', currentOrgId)
+        .eq('active', true)
+        .in('code', releaseStatuses),
+      supabase.rpc('has_org_permission', { target_org: currentOrgId, permission: 'maintenance.manage' }),
+      supabase.rpc('has_org_permission', { target_org: currentOrgId, permission: 'catalogs.manage' }),
+    ])
+    const firstError = assetsResult.error
+      ?? assetTypesResult.error
+      ?? maintenanceTypesResult.error
+      ?? plansResult.error
+      ?? recordsResult.error
+      ?? membershipsResult.error
+      ?? profilesResult.error
+      ?? assetStatusesResult.error
+      ?? managePermission.error
+      ?? catalogPermission.error
+    if (firstError) {
+      setError(firstError.message)
+      setLoading(false)
+      return
+    }
+
+    const assetRows = assetsResult.data ?? []
+    setAssets(assetRows)
+    setAssetNames(Object.fromEntries(assetRows.map((asset) => [asset.id, `${asset.name} · ${asset.internal_code}`])))
+    setAssetTypes(assetTypesResult.data ?? [])
+    setMaintenanceTypes(maintenanceTypesResult.data ?? [])
+    setPlans(plansResult.data ?? [])
+    setRecords(recordsResult.data ?? [])
+    const profileNames = new Map((profilesResult.data ?? []).map((profile) => [profile.user_id, profile.display_name]))
+    setMembers((membershipsResult.data ?? []).map(({ user_id }) => ({
+      user_id,
+      display_name: profileNames.get(user_id) ?? `Usuario ${user_id.slice(0, 8)}`,
+    })))
+    setAssetStatuses(assetStatusesResult.data ?? [])
+    setCanManage(managePermission.data === true)
+    setCanManagePlans(catalogPermission.data === true)
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    const task = window.setTimeout(() => void loadData(), 0)
+    return () => window.clearTimeout(task)
+  }, [loadData])
+
+  useEffect(() => {
+    const client = supabase
+    if (!client || !orgId) return
+    const channel = client
+      .channel(`maintenance-${orgId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_records', filter: `org_id=eq.${orgId}` }, () => void loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'assets', filter: `org_id=eq.${orgId}` }, () => void loadData())
+      .subscribe((status, subscriptionError) => {
+        if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && subscriptionError) {
+          setError(subscriptionError.message)
+        }
+      })
+    return () => {
+      void client.removeChannel(channel)
+    }
+  }, [loadData, orgId])
+
+  const filteredRecords = useMemo(() => {
+    const normalized = query.trim().toLocaleLowerCase()
+    if (!normalized) return records
+    return records.filter((record) => [
+      assetNames[record.asset_id],
+      record.diagnosis,
+      record.activities,
+      record.external_company,
+      record.external_technician,
+      record.maintenance_type,
+    ].some((value) => value?.toLocaleLowerCase().includes(normalized)))
+  }, [assetNames, query, records])
+  const openCount = records.filter((record) => record.status === 'open' || record.status === 'in_progress').length
+  const completedCount = records.filter((record) => record.status === 'completed').length
+  const unavailableCount = assets.filter((asset) => asset.status === 'maintenance' || asset.status === 'repair').length
+  const selectedAsset = assets.find((asset) => asset.id === draft.asset_id)
+  const filteredPlans = plans.filter((plan) => plan.asset_type_code === selectedAsset?.asset_type_code)
+  const memberNames = new Map(members.map((member) => [member.user_id, member.display_name]))
+
+  async function createMaintenance(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!supabase || !orgId) return
+    setSaving(true)
+    setError('')
+    setNotice('')
+    const { error: createError } = await supabase.rpc('start_maintenance', {
+      p_org_id: orgId,
+      p_asset_id: draft.asset_id,
+      p_maintenance_type: draft.maintenance_type,
+      p_plan_id: draft.plan_id || null,
+      p_performed_at: new Date(draft.performed_at).toISOString(),
+      p_technician_user_id: draft.technician_user_id || null,
+      p_external_company: draft.external_company.trim() || null,
+      p_external_technician: draft.external_technician.trim() || null,
+      p_diagnosis: draft.diagnosis.trim() || null,
+      p_notes: draft.notes.trim() || null,
+    })
+    if (createError) {
+      setError(createError.message)
+    } else {
+      setCreateOpen(false)
+      setNotice('Mantenimiento creado; el activo quedó fuera de servicio hasta su cierre.')
+      setDraft((current) => ({ ...current, diagnosis: '', notes: '', external_company: '', external_technician: '', plan_id: '' }))
+      await loadData()
+    }
+    setSaving(false)
+  }
+
+  async function completeMaintenance(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!supabase || !orgId || !completing) return
+    setSaving(true)
+    setError('')
+    setNotice('')
+    const { error: completeError } = await supabase.rpc('complete_maintenance', {
+      p_org_id: orgId,
+      p_maintenance_record_id: completing.id,
+      p_activities: completionDraft.activities.trim(),
+      p_outcome: completionDraft.outcome.trim(),
+      p_release_asset_status: completionDraft.release_asset_status,
+      p_cost: completionDraft.cost === '' ? null : Number(completionDraft.cost),
+      p_next_intervention_at: completionDraft.next_intervention_at || null,
+    })
+    if (completeError) {
+      setError(completeError.message)
+    } else {
+      setCompleting(null)
+      setNotice('Intervención finalizada; el resultado y el estado del activo quedaron registrados.')
+      setCompletionDraft({ activities: '', outcome: '', release_asset_status: 'available', cost: '', next_intervention_at: '' })
+      await loadData()
+    }
+    setSaving(false)
+  }
+
+  async function createPlan(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!supabase || !orgId) return
+    setSaving(true)
+    setError('')
+    const { error: planError } = await supabase.from('maintenance_plans').insert({
+      org_id: orgId,
+      asset_type_code: planDraft.asset_type_code,
+      name: planDraft.name.trim(),
+      interval_flight_hours: planDraft.interval_flight_hours === '' ? null : Number(planDraft.interval_flight_hours),
+      interval_days: planDraft.interval_days === '' ? null : Number(planDraft.interval_days),
+    })
+    if (planError) {
+      setError(planError.message)
+    } else {
+      setPlanOpen(false)
+      setPlanDraft({ asset_type_code: '', name: '', interval_flight_hours: '', interval_days: '' })
+      setNotice('Plan preventivo creado.')
+      await loadData()
+    }
+    setSaving(false)
+  }
+
+  return (
+    <motion.section className="maintenance-page" initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+      <div className="maintenance-toolbar">
+        <div>
+          <strong>Seguimiento técnico</strong>
+          <span>Intervenciones y programación preventiva</span>
+        </div>
+        <div className="maintenance-actions">
+          <input className="maintenance-search" aria-label="Buscar mantenimientos" placeholder="Buscar por equipo, técnico o diagnóstico" value={query} onChange={(event) => setQuery(event.target.value)} />
+          <button className="icon-button" type="button" aria-label="Actualizar mantenimientos" onClick={() => { setLoading(true); void loadData() }} disabled={loading}><RefreshCw size={17} /></button>
+          {canManagePlans && <button className="secondary-button" type="button" onClick={() => setPlanOpen(true)}><CalendarClock size={16} /> Nuevo plan</button>}
+          {canManage && <button className="primary-button" type="button" onClick={() => setCreateOpen(true)}><Plus size={16} /> Registrar intervención</button>}
+        </div>
+      </div>
+
+      {error && <div className="inline-error" role="alert"><AlertTriangle size={17} />{error}</div>}
+      {notice && <div className="inline-success" role="status"><Check size={16} />{notice}</div>}
+
+      <div className="maintenance-stats">
+        <article><span className="maintenance-stat-icon maintenance-icon-blue"><Wrench size={17} /></span><div><strong>{loading ? '…' : openCount}</strong><small>Intervenciones abiertas</small></div></article>
+        <article><span className="maintenance-stat-icon maintenance-icon-amber"><AlertTriangle size={17} /></span><div><strong>{loading ? '…' : unavailableCount}</strong><small>Activos en mantenimiento o reparación</small></div></article>
+        <article><span className="maintenance-stat-icon maintenance-icon-green"><ClipboardCheck size={17} /></span><div><strong>{loading ? '…' : completedCount}</strong><small>Intervenciones finalizadas</small></div></article>
+      </div>
+
+      <section className="maintenance-section">
+        <div className="maintenance-section-heading"><div><h2>Historial de intervenciones</h2><p>Registro técnico por activo</p></div><span>{filteredRecords.length} registros</span></div>
+        {loading ? (
+          <div className="maintenance-empty">Cargando historial…</div>
+        ) : filteredRecords.length === 0 ? (
+          <div className="maintenance-empty"><Wrench size={22} /><strong>{records.length ? 'Sin coincidencias' : 'Aún no hay intervenciones'}</strong><span>Las intervenciones y reparaciones registradas aparecerán aquí.</span></div>
+        ) : (
+          <div className="maintenance-record-list">
+            {filteredRecords.map((record, index) => {
+              const isOpen = record.status === 'open' || record.status === 'in_progress'
+              const technician = record.technician_user_id ? memberNames.get(record.technician_user_id) : null
+              return (
+                <motion.article className="maintenance-record-card" key={record.id} initial={reduceMotion ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={reduceMotion ? { duration: 0 } : { delay: Math.min(index * 0.025, 0.18) }}>
+                  <div className="maintenance-record-top">
+                    <div className="maintenance-record-title">
+                      <span className={`maintenance-record-status record-${record.status}`}>{statusLabel(record.status)}</span>
+                      <h3>{assetNames[record.asset_id] ?? 'Activo'}</h3>
+                      <p>{maintenanceTypes.find(({ code }) => code === record.maintenance_type)?.name ?? record.maintenance_type} · {formatDate(record.performed_at)}</p>
+                    </div>
+                    {isOpen && canManage && <button className="primary-button" type="button" onClick={() => { setCompletionDraft((current) => ({ ...current, release_asset_status: 'available' })); setCompleting(record) }}><Check size={15} /> Finalizar</button>}
+                  </div>
+                  <div className="maintenance-record-details">
+                    <div><small>Responsable técnico</small><span>{technician ?? record.external_technician ?? 'Sin asignar'}{record.external_company ? ` · ${record.external_company}` : ''}</span></div>
+                    {record.diagnosis && <div><small>Diagnóstico</small><span>{record.diagnosis}</span></div>}
+                    {record.activities && <div><small>Trabajo realizado</small><span>{record.activities}</span></div>}
+                    {record.outcome && <div><small>Resultado</small><span>{record.outcome}</span></div>}
+                    <div><small>Costo</small><span>{formatCurrency(record.cost)}</span></div>
+                    {record.next_intervention_at && <div><small>Próxima intervención</small><span>{formatDate(record.next_intervention_at)}</span></div>}
+                  </div>
+                </motion.article>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className="maintenance-section">
+        <div className="maintenance-section-heading"><div><h2>Planes preventivos</h2><p>Intervalos configurables por tipo de activo</p></div><span>{plans.length} planes</span></div>
+        {plans.length === 0 ? (
+          <div className="maintenance-empty compact"><CalendarClock size={20} /><span>No hay planes programados. {canManagePlans ? 'Crea intervalos por horas o días.' : 'Solicita al administrador que configure los intervalos.'}</span></div>
+        ) : (
+          <div className="maintenance-plan-grid">
+            {plans.map((plan) => (
+              <article className="maintenance-plan-card" key={plan.id}>
+                <span className="maintenance-stat-icon maintenance-icon-blue"><CalendarClock size={16} /></span>
+                <div><strong>{plan.name}</strong><small>{assetTypes.find(({ code }) => code === plan.asset_type_code)?.name ?? plan.asset_type_code}</small></div>
+                <span className="plan-interval">{[
+                  plan.interval_flight_hours !== null ? `${plan.interval_flight_hours} h` : '',
+                  plan.interval_days !== null ? `${plan.interval_days} días` : '',
+                ].filter(Boolean).join(' · ')}</span>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <AnimatePresence>
+        {createOpen && (
+          <MaintenanceModal title="Registrar intervención" onClose={() => setCreateOpen(false)} reducedMotion={Boolean(reduceMotion)}>
+            <form className="maintenance-form" onSubmit={(event) => void createMaintenance(event)}>
+              <label>Activo<select required value={draft.asset_id} onChange={(event) => setDraft((current) => ({ ...current, asset_id: event.target.value, plan_id: '' }))}><option value="">Selecciona un activo</option>{assets.map((asset) => <option key={asset.id} value={asset.id}>{asset.name} · {asset.internal_code} · {asset.status}</option>)}</select></label>
+              <div className="maintenance-form-grid">
+                <label>Tipo de mantenimiento<select required value={draft.maintenance_type} onChange={(event) => setDraft((current) => ({ ...current, maintenance_type: event.target.value }))}><option value="">Selecciona un tipo</option>{maintenanceTypes.map((type) => <option key={type.code} value={type.code}>{type.name}</option>)}</select></label>
+                <label>Plan preventivo<select value={draft.plan_id} onChange={(event) => setDraft((current) => ({ ...current, plan_id: event.target.value }))}><option value="">Sin plan asociado</option>{filteredPlans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select></label>
+              </div>
+              <label>Fecha de inicio<input type="datetime-local" required value={draft.performed_at} onChange={(event) => setDraft((current) => ({ ...current, performed_at: event.target.value }))} /></label>
+              <label>Técnico interno (opcional)<select value={draft.technician_user_id} onChange={(event) => setDraft((current) => ({ ...current, technician_user_id: event.target.value }))}><option value="">No aplica / servicio externo</option>{members.map((member) => <option key={member.user_id} value={member.user_id}>{member.display_name}</option>)}</select></label>
+              <div className="maintenance-form-grid">
+                <label>Empresa externa (opcional)<input maxLength={150} value={draft.external_company} onChange={(event) => setDraft((current) => ({ ...current, external_company: event.target.value }))} /></label>
+                <label>Técnico externo (opcional)<input maxLength={150} value={draft.external_technician} onChange={(event) => setDraft((current) => ({ ...current, external_technician: event.target.value }))} /></label>
+              </div>
+              <label>Diagnóstico<textarea rows={3} value={draft.diagnosis} onChange={(event) => setDraft((current) => ({ ...current, diagnosis: event.target.value }))} /></label>
+              <label>Observaciones<textarea rows={2} value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} /></label>
+              <div className="maintenance-form-footer"><button className="secondary-button" type="button" onClick={() => setCreateOpen(false)}>Cancelar</button><button className="primary-button" type="submit" disabled={saving || !draft.asset_id || !draft.maintenance_type || (!draft.technician_user_id && !draft.external_company.trim() && !draft.external_technician.trim())}>{saving ? 'Guardando…' : 'Iniciar mantenimiento'}</button></div>
+            </form>
+          </MaintenanceModal>
+        )}
+        {planOpen && (
+          <MaintenanceModal title="Nuevo plan preventivo" onClose={() => setPlanOpen(false)} reducedMotion={Boolean(reduceMotion)}>
+            <form className="maintenance-form" onSubmit={(event) => void createPlan(event)}>
+              <label>Tipo de activo<select required value={planDraft.asset_type_code} onChange={(event) => setPlanDraft((current) => ({ ...current, asset_type_code: event.target.value }))}><option value="">Selecciona un tipo</option>{assetTypes.map((type) => <option key={type.code} value={type.code}>{type.name}</option>)}</select></label>
+              <label>Nombre del plan<input required maxLength={120} value={planDraft.name} onChange={(event) => setPlanDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Ej. Inspección preventiva" /></label>
+              <div className="maintenance-form-grid">
+                <label>Intervalo en horas de vuelo<input type="number" min="0.01" step="0.01" value={planDraft.interval_flight_hours} onChange={(event) => setPlanDraft((current) => ({ ...current, interval_flight_hours: event.target.value }))} placeholder="Opcional" /></label>
+                <label>Intervalo en días<input type="number" min="1" step="1" value={planDraft.interval_days} onChange={(event) => setPlanDraft((current) => ({ ...current, interval_days: event.target.value }))} placeholder="Opcional" /></label>
+              </div>
+              <p className="maintenance-form-hint">Indica al menos un intervalo. Ambos pueden usarse si aplica mantenimiento por horas o calendario.</p>
+              <div className="maintenance-form-footer"><button className="secondary-button" type="button" onClick={() => setPlanOpen(false)}>Cancelar</button><button className="primary-button" type="submit" disabled={saving || (!planDraft.interval_flight_hours && !planDraft.interval_days)}>{saving ? 'Guardando…' : 'Crear plan'}</button></div>
+            </form>
+          </MaintenanceModal>
+        )}
+        {completing && (
+          <MaintenanceModal title={`Finalizar · ${assetNames[completing.asset_id] ?? 'Activo'}`} onClose={() => setCompleting(null)} reducedMotion={Boolean(reduceMotion)}>
+            <form className="maintenance-form" onSubmit={(event) => void completeMaintenance(event)}>
+              <label>Actividades realizadas<textarea required rows={3} value={completionDraft.activities} onChange={(event) => setCompletionDraft((current) => ({ ...current, activities: event.target.value }))} /></label>
+              <label>Resultado<textarea required rows={2} value={completionDraft.outcome} onChange={(event) => setCompletionDraft((current) => ({ ...current, outcome: event.target.value }))} /></label>
+              <div className="maintenance-form-grid">
+                <label>Estado del activo al salir<select required value={completionDraft.release_asset_status} onChange={(event) => setCompletionDraft((current) => ({ ...current, release_asset_status: event.target.value }))}>{assetStatuses.map((status) => <option key={status.code} value={status.code}>{status.name}</option>)}</select></label>
+                <label>Costo (COP)<input type="number" min="0" step="1" value={completionDraft.cost} onChange={(event) => setCompletionDraft((current) => ({ ...current, cost: event.target.value }))} placeholder="Opcional" /></label>
+              </div>
+              <label>Próxima intervención (opcional)<input type="date" value={completionDraft.next_intervention_at} onChange={(event) => setCompletionDraft((current) => ({ ...current, next_intervention_at: event.target.value }))} /></label>
+              <div className="maintenance-form-footer"><button className="secondary-button" type="button" onClick={() => setCompleting(null)}>Cancelar</button><button className="primary-button" type="submit" disabled={saving}>{saving ? 'Finalizando…' : 'Confirmar cierre'}</button></div>
+            </form>
+          </MaintenanceModal>
+        )}
+      </AnimatePresence>
+    </motion.section>
+  )
+}
+
+function MaintenanceModal({
+  title,
+  children,
+  onClose,
+  reducedMotion,
+}: {
+  title: string
+  children: React.ReactNode
+  onClose: () => void
+  reducedMotion: boolean
+}) {
+  return (
+    <motion.div className="maintenance-modal-backdrop" role="presentation" initial={reducedMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={reducedMotion ? undefined : { opacity: 0 }} onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+      <motion.section className="maintenance-modal" role="dialog" aria-modal="true" aria-label={title} initial={reducedMotion ? false : { opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={reducedMotion ? undefined : { opacity: 0, y: 8, scale: 0.98 }}>
+        <div className="maintenance-modal-heading"><div><span className="eyebrow">SKY LOGIC · MANTENIMIENTO</span><h2>{title}</h2></div><button className="icon-button" type="button" aria-label="Cerrar" onClick={onClose}><X size={18} /></button></div>
+        {children}
+      </motion.section>
+    </motion.div>
+  )
+}

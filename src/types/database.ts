@@ -200,6 +200,66 @@ export interface Database {
           departure_at?: string
         }
       >
+      maintenance_types: Table<
+        { org_id: string; code: string; name: string; active: boolean },
+        { org_id: string; code: string; name: string; active?: boolean }
+      >
+      maintenance_plans: Table<
+        {
+          id: string
+          org_id: string
+          asset_type_code: string
+          name: string
+          interval_flight_hours: number | null
+          interval_days: number | null
+          active: boolean
+          created_at: string
+        },
+        {
+          org_id: string
+          asset_type_code: string
+          name: string
+          interval_flight_hours?: number | null
+          interval_days?: number | null
+          active?: boolean
+        }
+      >
+      maintenance_records: Table<
+        {
+          id: string
+          org_id: string
+          asset_id: string
+          plan_id: string | null
+          maintenance_type: string
+          status: 'open' | 'in_progress' | 'completed' | 'cancelled'
+          performed_at: string
+          completed_at: string | null
+          technician_user_id: string | null
+          external_company: string | null
+          external_technician: string | null
+          diagnosis: string | null
+          activities: string | null
+          outcome: string | null
+          cost: number | null
+          next_intervention_at: string | null
+          notes: string | null
+          created_by: string
+          created_at: string
+        },
+        {
+          org_id: string
+          asset_id: string
+          maintenance_type: string
+          plan_id?: string | null
+          status?: 'open' | 'in_progress' | 'completed' | 'cancelled'
+          performed_at?: string
+          technician_user_id?: string | null
+          external_company?: string | null
+          external_technician?: string | null
+          diagnosis?: string | null
+          notes?: string | null
+        }
+      >
     }
     Views: Record<string, never>
     Functions: {
@@ -240,6 +300,34 @@ export interface Database {
           p_hour_meter_start?: number | null
           p_hour_meter_end?: number | null
           p_returned_at?: string
+        }
+        Returns: string
+      }
+      start_maintenance: {
+        Args: {
+          p_org_id: string
+          p_asset_id: string
+          p_maintenance_type: string
+          p_plan_id?: string | null
+          p_performed_at?: string
+          p_technician_user_id?: string | null
+          p_external_company?: string | null
+          p_external_technician?: string | null
+          p_diagnosis?: string | null
+          p_notes?: string | null
+        }
+        Returns: string
+      }
+      complete_maintenance: {
+        Args: {
+          p_org_id: string
+          p_maintenance_record_id: string
+          p_activities: string
+          p_outcome: string
+          p_release_asset_status: string
+          p_cost?: number | null
+          p_completed_at?: string
+          p_next_intervention_at?: string | null
         }
         Returns: string
       }

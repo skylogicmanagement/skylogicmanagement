@@ -30,6 +30,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import type { Session } from '@supabase/supabase-js'
 import { AssetsPage } from './features/assets/AssetsPage'
 import { OperationsPage } from './features/operations/OperationsPage'
+import { MaintenancePage } from './features/maintenance/MaintenancePage'
 import { supabase, supabaseConfigError } from './lib/supabase'
 
 const FlightChart = lazy(() => import('./components/FlightChart'))
@@ -478,6 +479,8 @@ function Workspace({ session }: { session: Session }) {
             <AssetsPage userId={session.user.id} />
           ) : page === 'Operaciones' ? (
             <OperationsPage userId={session.user.id} />
+          ) : page === 'Mantenimiento' ? (
+            <MaintenancePage />
           ) : (
             <ModulePlaceholder page={page} onBack={() => setPage('Resumen')} />
           )}

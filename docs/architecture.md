@@ -86,6 +86,15 @@ skylogicmanagement/
   src/
     components/
       FlightChart.tsx
+    features/
+      assets/
+        AssetsPage.tsx
+      maintenance/
+        MaintenancePage.tsx
+        maintenance.css
+      operations/
+        OperationsPage.tsx
+        operations.css
     lib/
       supabase.ts
     App.tsx
@@ -93,6 +102,7 @@ skylogicmanagement/
   supabase/
     migrations/
       20261125130000_initial_schema.sql
+      20261125134500_maintenance_workflows.sql
   .github/
     workflows/
       deploy-pages.yml
@@ -102,10 +112,13 @@ La estructura funcional se ampliará a medida que se construyan los módulos:
 
 ```text
 src/
-  app/
   components/
   features/
+    assets/
+    maintenance/
+    operations/
   lib/
+  types/
   services/
   styles/
   types/

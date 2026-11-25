@@ -140,6 +140,12 @@ proxima intervencion.
 `maintenance_parts` relaciona repuestos consumidos o instalados con cada mantenimiento.
 `maintenance_plans` guarda intervalos configurables, como 50, 100 o 200 horas.
 
+La migración de flujos de mantenimiento expone funciones transaccionales para iniciar y
+cerrar una intervención. Iniciarla cambia el estado del activo a mantenimiento; mientras
+exista una intervención abierta no se puede volver a habilitar ni desactivar el activo.
+El cierre guarda actividades, resultado, costo opcional, siguiente fecha y estado de
+liberación. Los registros cerrados son inmutables para operaciones normales.
+
 ### Inventario
 
 `inventory_items` representa repuestos gestionados por cantidad. Los componentes

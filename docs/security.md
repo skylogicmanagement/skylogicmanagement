@@ -82,6 +82,11 @@ Los registros de vuelo, movimientos de inventario y documentos confirmados adem�
 rechazan cambios o eliminaci처n; el inventario se modifica mediante movimientos y los
 activos se desactivan en vez de borrarse.
 
+Los registros de mantenimiento solo pueden crearse o modificarse mediante funciones
+transaccionales autorizadas. Una intervenci처n abierta mantiene el activo bloqueado
+contra operaciones, liberaci처n de estado y desactivaci처n; los registros cerrados no
+pueden reescribirse.
+
 Una correcci처n debe:
 
 1. Conserva el evento original.

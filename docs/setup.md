@@ -11,8 +11,11 @@
 
 1. Crea un proyecto Supabase; no actives un plan pago sin autorización.
 2. Deshabilita el registro público en Authentication.
-3. Abre SQL Editor en el proyecto y ejecuta la migración completa:
-   `supabase/migrations/20261125130000_initial_schema.sql`.
+3. Abre SQL Editor en el proyecto y ejecuta, en este orden, las migraciones completas:
+   - `supabase/migrations/20261125130000_initial_schema.sql`
+   - `supabase/migrations/20261125134500_maintenance_workflows.sql`
+   Si ya ejecutaste la primera migración, ejecuta solamente la segunda; no vuelvas a
+   ejecutar la primera sobre un esquema ya creado.
 4. Invita a la primera cuenta desde Authentication. No habilites el registro público.
 5. Obtén el UUID de esa cuenta en Authentication y ejecuta, reemplazando el texto
    marcador:
@@ -43,9 +46,10 @@ ubicaciones genéricas, Sky One y Sky Two, dos controles y seis baterías. No as
 números de serie, valores, fechas, proveedores ni ubicación actual a los activos; el
 estado inicial queda como **no verificado**.
 
-La migración también configura tablas privadas, RLS, triggers de auditoría, reglas de
-asignación, horas de vuelo, movimientos de inventario y un bucket privado de archivos.
-No se ha aplicado a un proyecto Supabase desde este entorno.
+Las migraciones configuran tablas privadas, RLS, triggers de auditoría, reglas de
+asignación, horas de vuelo, movimientos de inventario, flujos transaccionales de
+mantenimiento y un bucket privado de archivos. Aún no se han aplicado a un proyecto
+Supabase desde este entorno.
 
 ## Instalacion local
 

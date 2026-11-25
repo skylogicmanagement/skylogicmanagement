@@ -59,6 +59,10 @@ analítica y los reportes de horas siguen pendientes.
 - Repuestos utilizados.
 - Alertas y próximas intervenciones.
 
+Estado: registro de inicio/cierre, bloqueo del activo mientras hay una intervención
+abierta y planes preventivos configurables implementados. Faltan alertas por umbral de
+horas/fecha, repuestos asociados y adjuntos.
+
 ## Fase 7: Inventario
 
 - Repuestos por cantidad y serializados.
@@ -102,9 +106,8 @@ analítica y los reportes de horas siguen pendientes.
 
 ## Dependencia externa pendiente
 
-El proyecto Supabase debe crearse desde la cuenta de Sky Logic y la migración inicial
-debe aplicarse allí. No se ha recibido URL ni clave pública del proyecto; por eso no se
-ha publicado ni probado la conexión a una base real.
+El proyecto Supabase ya fue creado y se recibieron la URL y la clave Publishable; sin
+embargo, las migraciones y la conexión real aún no se han probado desde este entorno.
 
 La aplicación de migración, la prueba de RLS/autenticación y los flujos de operación
 requieren ese proyecto. Sin él, la validación disponible es compilación, lint y parseo

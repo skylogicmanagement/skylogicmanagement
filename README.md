@@ -14,10 +14,13 @@ habilitar el acceso seguro.
 - Fase 4 iniciada: listado, búsqueda y alta de activos con estado inicial no verificado.
 - Fase 5 iniciada: operaciones, salidas, devoluciones parciales, lectura de horómetro y
   fincas con formularios transaccionales y sincronización en tiempo real.
+- Fase 6 iniciada: intervenciones de mantenimiento, cierre con estado/costo/resultado y
+  planes preventivos configurables.
 - Base de datos: migración inicial preparada, pendiente de aplicación en Supabase.
 - Mantenimiento, inventario, auditoría visual, usuarios y reportes siguen en desarrollo.
-- La autenticación y las consultas reales solo pueden validarse después de configurar el
-  proyecto Supabase de Sky Logic.
+- Para activar la nueva fase, aplica la migración de mantenimiento siguiendo
+  [las instrucciones de configuración](docs/setup.md).
+- La conexión real aún no se ha probado contra el proyecto Supabase de Sky Logic.
 
 ## Documentacion
 
@@ -27,6 +30,7 @@ habilitar el acceso seguro.
 - [Plan de implementacion](docs/implementation-plan.md)
 - [Configuracion local y despliegue](docs/setup.md)
 - [Migración inicial de Supabase](supabase/migrations/20261125130000_initial_schema.sql)
+- [Flujos transaccionales de mantenimiento](supabase/migrations/20261125134500_maintenance_workflows.sql)
 
 ## Ejecucion local
 
