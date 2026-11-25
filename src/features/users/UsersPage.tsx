@@ -19,6 +19,13 @@ type InviteDraft = { email: string; displayName: string; phone: string; roleId: 
 
 const emptyInvite: InviteDraft = { email: '', displayName: '', phone: '', roleId: '' }
 
+function getUserManagementError(message: string) {
+  if (message.includes('organization_user_contacts') || message.includes('create_org_membership') || message.includes('update_org_membership')) {
+    return 'Falta aplicar la migración de administración de usuarios. En Supabase > SQL Editor, ejecuta una sola vez el contenido de supabase/migrations/20261125170000_user_management.sql y vuelve a cargar esta sección.'
+  }
+  return message
+}
+
 export function UsersPage({ userId }: { userId: string }) {
   const reduceMotion = useReducedMotion()
   const [orgId, setOrgId] = useState('')
@@ -91,7 +98,7 @@ export function UsersPage({ userId }: { userId: string }) {
     ])
     const queryError = membersResult.error ?? profilesResult.error ?? contactsResult.error ?? permissionLinksResult.error ?? permissionsResult.error
     if (queryError) {
-      setError(queryError.message)
+      setError(getUserManagementError(queryError.message))
       setLoading(false)
       return
     }
@@ -170,9 +177,9 @@ export function UsersPage({ userId }: { userId: string }) {
       },
     })
     if (inviteError) {
-      setError(inviteError.message)
+      setError(getUserManagementError(inviteError.message))
     } else if (data?.error) {
-      setError(String(data.error))
+      setError(getUserManagementError(String(data.error)))
     } else {
       setNotice(data?.invitationSent
         ? `Invitación enviada a ${invite.email.trim()}. El acceso se activará cuando acepte el correo.`
@@ -198,7 +205,7 @@ export function UsersPage({ userId }: { userId: string }) {
       p_active: member.active,
     })
     if (updateError) {
-      setError(updateError.message)
+      setError(getUserManagementError(updateError.message))
     } else {
       setNotice(`Rol actualizado para ${member.name}.`)
       setRoleDrafts((current) => { const next = { ...current }; delete next[member.id]; return next })
@@ -225,7 +232,7 @@ export function UsersPage({ userId }: { userId: string }) {
       p_active: !member.active,
     })
     if (updateError) {
-      setError(updateError.message)
+      setError(getUserManagementError(updateError.message))
     } else {
       setNotice(member.active ? `Acceso de ${member.name} desactivado.` : `Acceso de ${member.name} reactivado.`)
       await loadData()

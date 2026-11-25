@@ -12,6 +12,7 @@ import {
   Clock3,
   Command,
   ContactRound,
+  CircleHelp,
   Drone,
   Gauge,
   LayoutDashboard,
@@ -261,6 +262,7 @@ function Workspace({ session }: { session: Session }) {
   const [recentOperations, setRecentOperations] = useState<RecentOperation[]>([])
   const [statusNames, setStatusNames] = useState<Record<string, string>>({})
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
   const [refreshToken, setRefreshToken] = useState(0)
   const reduceMotion = useReducedMotion()
   const userEmail = session.user.email ?? 'Usuario'
@@ -439,7 +441,11 @@ function Workspace({ session }: { session: Session }) {
         </nav>
         <div className="sidebar-bottom">
           <button className={`nav-item ${page === 'Configuración' ? 'nav-item-active' : ''}`} onClick={() => setPage('Configuración')}><Settings2 size={18} /><span>Configuración</span></button>
-          <div className="sidebar-help"><div className="help-icon"><Activity size={17} /></div><div><strong>Centro de ayuda</strong><span>Estamos para ayudarte</span></div><ArrowUpRight size={15} /></div>
+          <button className="sidebar-help" type="button" onClick={() => setHelpOpen(true)}>
+            <span className="help-icon"><Activity size={17} /></span>
+            <span className="sidebar-help-copy"><strong>Centro de ayuda</strong><span>Guía rápida de la plataforma</span></span>
+            <ArrowUpRight size={15} />
+          </button>
           <button className="profile-button" onClick={() => setUserMenuOpen((open) => !open)}>
             <span className="avatar">{initials}</span>
             <span className="profile-info"><strong>{userEmail}</strong><small>Cuenta autorizada</small></span>
@@ -504,7 +510,60 @@ function Workspace({ session }: { session: Session }) {
           <footer className="page-footer"><span>© 2026 Sky Logic</span><span>Sistema de gestión de activos <i /> Información centralizada</span></footer>
         </main>
       </div>
+      <HelpCenter open={helpOpen} onClose={() => setHelpOpen(false)} onNavigate={(targetPage) => { setPage(targetPage); setHelpOpen(false); setMenuOpen(false) }} />
     </div>
+  )
+}
+
+const helpTopics = [
+  { title: 'Resumen', description: 'Consulta indicadores, estado de la flota, horas y actividad reciente.', page: 'Resumen' },
+  { title: 'Activos', description: 'Registra drones, baterías, controles y equipos. Edita seriales, ubicación, estado y responsables.', page: 'Activos' },
+  { title: 'Operaciones', description: 'Registra salidas a fincas, activos asignados, pilotos y devoluciones.', page: 'Operaciones' },
+  { title: 'Pilotos', description: 'Administra los datos del personal que opera drones; no necesitan cuenta de acceso.', page: 'Pilotos' },
+  { title: 'Mantenimiento', description: 'Consulta planes y alertas. Registra intervenciones y repuestos utilizados.', page: 'Mantenimiento' },
+  { title: 'Inventario', description: 'Controla cantidades, mínimos, números de serie y movimientos de repuestos.', page: 'Inventario' },
+  { title: 'Reportes', description: 'Filtra informes de vuelos o mantenimientos y descarga resultados CSV.', page: 'Reportes' },
+  { title: 'Auditoría', description: 'Revisa eventos e historial de cambios según el permiso asignado.', page: 'Auditoría' },
+  { title: 'Configuración', description: 'Administra miembros de la organización, roles y acceso al sistema.', page: 'Configuración' },
+]
+
+function HelpCenter({ open, onClose, onNavigate }: { open: boolean; onClose: () => void; onNavigate: (page: string) => void }) {
+  useEffect(() => {
+    if (!open) return
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose, open])
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div className="help-center-backdrop" role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) onClose()
+        }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <motion.section className="help-center-dialog" role="dialog" aria-modal="true" aria-labelledby="help-center-title" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}>
+            <header className="help-center-heading">
+              <span className="help-center-mark"><CircleHelp size={20} /></span>
+              <div><h2 id="help-center-title">Centro de ayuda</h2><p>Guía rápida para usar Sky Logic</p></div>
+              <button className="icon-button" type="button" aria-label="Cerrar centro de ayuda" onClick={onClose}><X size={18} /></button>
+            </header>
+            <div className="help-center-content">
+              <p className="help-center-intro">Selecciona una sección para abrirla. Los datos visibles dependen de los permisos de tu cuenta.</p>
+              <div className="help-center-topics">
+                {helpTopics.map(({ title, description, page: targetPage }) => (
+                  <button type="button" className="help-center-topic" key={targetPage} onClick={() => onNavigate(targetPage)}>
+                    <span><strong>{title}</strong><small>{description}</small></span><ArrowUpRight size={15} />
+                  </button>
+                ))}
+              </div>
+              <div className="help-center-note"><ShieldCheck size={16} /><span>Si no puedes acceder a una función, solicita al administrador que revise tu rol en Configuración.</span></div>
+            </div>
+          </motion.section>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }
 

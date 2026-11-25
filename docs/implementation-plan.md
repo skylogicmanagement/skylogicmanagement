@@ -138,6 +138,10 @@ administrador. Las invitaciones usan una función de Supabase que no expone la c
 administrativa. La migración y la función deben aplicarse/publicarse en el proyecto real;
 faltan pruebas integrales con cuentas de distintos roles.
 
+El botón Centro de ayuda abre una guía rápida con descripciones y accesos directos a los
+módulos. La sección de usuarios identifica con una instrucción concreta si todavía no se
+aplicó la migración requerida de administración.
+
 ## Criterios de aprobación de la Fase 1
 
 - Entidades y relaciones aprobadas.
