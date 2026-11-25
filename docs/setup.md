@@ -18,6 +18,7 @@
    - `supabase/migrations/20261125150000_asset_profile_editing.sql`
    - `supabase/migrations/20261125153000_maintenance_inventory_integration.sql`
    - `supabase/migrations/20261125154500_maintenance_alerts.sql`
+   - `supabase/migrations/20261125160000_asset_assignment_workflows.sql`
    La migración de alertas usa `create or replace` y se puede volver a ejecutar para
    actualizar la función si se corrige. Si ya la ejecutaste y las alertas muestran un
    error de columna ambigua, vuelve a ejecutar únicamente
@@ -25,7 +26,11 @@
    ya se aplicaron correctamente. La integración de repuestos requiere las migraciones
    de mantenimiento e inventario; si alguna falta, aplícala antes de la integración.
    La migración de edición de fichas puede conservarse en su orden, pero no se debe
-   repetir si ya fue aplicada.
+   repetir si ya fue aplicada. La migración de asignaciones manuales crea flujos
+   transaccionales para asignar responsables y asociar componentes a drones, conserva
+   el historial al liberar y sincroniza los responsables que ya estén en las fichas.
+   Si las migraciones anteriores ya se aplicaron, ejecuta únicamente
+   `20261125160000_asset_assignment_workflows.sql`; no la ejecutes más de una vez.
 4. Invita a la primera cuenta desde Authentication. No habilites el registro público.
 5. Obtén el UUID de esa cuenta en Authentication y ejecuta, reemplazando el texto
    marcador:
@@ -55,6 +60,10 @@ La migración crea el tenant Sky Logic, los roles y permisos iniciales, tipos de
 ubicaciones genéricas, Sky One y Sky Two, dos controles y seis baterías. No asigna
 números de serie, valores, fechas, proveedores ni ubicación actual a los activos; el
 estado inicial queda como **no verificado**.
+
+Las asignaciones manuales requieren el permiso `operations.manage`. En Activos se puede
+consultar el dron o responsable asociado y gestionar las asignaciones actuales; cada
+liberación queda en el historial y no elimina el registro.
 
 Las migraciones configuran tablas privadas, RLS, triggers de auditoría, reglas de
 asignación, horas de vuelo, movimientos de inventario, flujos transaccionales de

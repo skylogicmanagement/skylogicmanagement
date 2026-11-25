@@ -109,6 +109,8 @@ skylogicmanagement/
       20261125143000_inventory_workflows.sql
       20261125150000_asset_profile_editing.sql
       20261125153000_maintenance_inventory_integration.sql
+      20261125154500_maintenance_alerts.sql
+      20261125160000_asset_assignment_workflows.sql
   .github/
     workflows/
       deploy-pages.yml

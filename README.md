@@ -13,13 +13,16 @@ habilitar el acceso seguro.
 - Fase 3: identidad visual, acceso privado y dashboard inicial implementados.
 - Fase 4: listado, búsqueda, alta y edición de fichas de activos con seriales,
   adquisición, proveedor, ubicación, responsable, datos técnicos de baterías y hoja de
-  vida cronológica.
+  vida cronológica; asignación manual de responsables y componentes a drones con
+  historial de liberaciones.
 - Fase 5 iniciada: operaciones, salidas, devoluciones parciales, lectura de horómetro y
   fincas con formularios transaccionales y sincronización en tiempo real.
 - Fases 4, 6 y 7 iniciadas: edición de fichas, mantenimiento transaccional y descuento
   atómico de repuestos, con inventario serializado y saldos por ubicación.
 - La edición de fichas de activos requiere aplicar la migración incremental
   `20261125150000_asset_profile_editing.sql`.
+- Las asignaciones manuales requieren aplicar una sola vez
+  `20261125160000_asset_assignment_workflows.sql`.
 - Auditoría visual, alertas de stock mínimo, adjuntos, usuarios y reportes siguen en
   desarrollo.
 - Sigue [las instrucciones de configuración](docs/setup.md) antes de usar la nueva
@@ -39,6 +42,7 @@ habilitar el acceso seguro.
 - [Edición segura de fichas de activos](supabase/migrations/20261125150000_asset_profile_editing.sql)
 - [Integración de repuestos con mantenimiento](supabase/migrations/20261125153000_maintenance_inventory_integration.sql)
 - [Alertas preventivas de mantenimiento](supabase/migrations/20261125154500_maintenance_alerts.sql)
+- [Flujos de asignación de activos](supabase/migrations/20261125160000_asset_assignment_workflows.sql)
 
 ## Ejecucion local
 

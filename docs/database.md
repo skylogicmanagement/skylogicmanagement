@@ -108,13 +108,22 @@ Cada asignacion conserva:
 - fecha de inicio
 - fecha de fin
 - motivo
+- usuario que la registró
 
 La hoja de vida consulta en modo lectura la ficha actual y los registros relacionados
 de `audit_events`, `operation_assets`, `asset_assignments`, `flight_logs`,
 `maintenance_records` e `inventory_movements`. Cada origen se consulta solo si el usuario
 tiene el permiso de lectura correspondiente; no se amplían políticas RLS ni se modifica
 el historial persistido.
-- usuario que la registro
+
+La migración `20261125160000_asset_assignment_workflows.sql` agrega funciones
+transaccionales `assign_asset` y `end_asset_assignment`, autorizadas con
+`operations.manage`. Los cambios de responsable realizados desde la ficha también se
+sincronizan en `asset_assignments`; la migración registra como línea base los responsables
+ya existentes. Los componentes se vinculan a un dron con una asignación temporal. Una
+asignación se libera con fecha de fin, sin reescribir ni borrar el evento. La aplicación
+solo muestra controles de gestión a usuarios autorizados y la base de datos vuelve a
+validar estado, pertenencia a la organización y operaciones abiertas.
 
 No se utiliza una relacion permanente para equipos auxiliares.
 

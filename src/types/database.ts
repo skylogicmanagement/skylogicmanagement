@@ -515,6 +515,21 @@ export interface Database {
           alert_status: 'overdue' | 'due' | 'upcoming' | 'untracked'
         }>
       }
+      assign_asset: {
+        Args: {
+          p_org_id: string
+          p_asset_id: string
+          p_assignment_type: 'asset' | 'user'
+          p_assigned_asset_id?: string | null
+          p_assigned_user_id?: string | null
+          p_reason?: string | null
+        }
+        Returns: string
+      }
+      end_asset_assignment: {
+        Args: { p_org_id: string; p_assignment_id: string }
+        Returns: string
+      }
       create_inventory_item: {
         Args: {
           p_org_id: string

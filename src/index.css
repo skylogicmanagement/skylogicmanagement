@@ -1622,6 +1622,182 @@ button {
   background: rgba(39, 132, 245, 0.13);
 }
 
+.asset-assignment-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 31px;
+  padding: 0 9px;
+  border: 1px solid rgba(189, 156, 255, 0.25);
+  border-radius: 7px;
+  background: rgba(189, 156, 255, 0.08);
+  color: #bd9cff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.asset-assignment-button:hover {
+  border-color: #a77af5;
+  background: rgba(189, 156, 255, 0.14);
+}
+
+.asset-assignment-modal {
+  width: min(100%, 620px);
+}
+
+.asset-current-assignments,
+.asset-assignment-form {
+  display: grid;
+  gap: 10px;
+}
+
+.asset-current-assignments {
+  margin-bottom: 20px;
+}
+
+.asset-current-assignments h3,
+.asset-assignment-form h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 11px;
+}
+
+.asset-current-assignments > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.asset-current-assignments article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-raised);
+}
+
+.asset-assignment-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #bd9cff;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.asset-current-assignments article > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.asset-current-assignments article strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.asset-current-assignments article small {
+  color: var(--muted-2);
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.asset-assignment-end {
+  min-height: 29px;
+  padding: 0 8px;
+  border: 1px solid rgba(230, 93, 93, 0.25);
+  border-radius: 6px;
+  background: rgba(230, 93, 93, 0.07);
+  color: #f08e8e;
+  cursor: pointer;
+  font: inherit;
+  font-size: 8px;
+}
+
+.asset-assignment-end:hover {
+  background: rgba(230, 93, 93, 0.14);
+}
+
+.asset-assignment-form > label {
+  display: grid;
+  gap: 6px;
+  color: var(--text);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.asset-assignment-form select,
+.asset-assignment-form textarea {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 9px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  outline: 0;
+  background: var(--surface-raised);
+  color: var(--text);
+  font-size: 10px;
+}
+
+.asset-assignment-form textarea {
+  resize: vertical;
+  font: inherit;
+}
+
+.asset-assignment-form select:focus,
+.asset-assignment-form textarea:focus {
+  border-color: #318bf0;
+  box-shadow: 0 0 0 3px rgba(49, 139, 240, 0.11);
+}
+
+.asset-assignment-hint,
+.asset-assignment-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0;
+  padding: 9px 10px;
+  border-radius: 7px;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.asset-assignment-hint {
+  border: 1px solid rgba(230, 189, 120, 0.16);
+  background: rgba(230, 189, 120, 0.06);
+  color: var(--muted);
+}
+
+.asset-assignment-hint svg,
+.asset-assignment-notice svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.asset-assignment-hint svg {
+  color: #e6bd78;
+}
+
+.asset-assignment-notice {
+  border: 1px solid rgba(35, 198, 161, 0.2);
+  background: rgba(35, 198, 161, 0.07);
+  color: #55d5b5;
+}
+
+.asset-assignment-form > .form-error {
+  margin: 0;
+}
+
 .asset-form-card {
   width: min(100%, 590px);
   max-height: min(90vh, 790px);
@@ -2210,7 +2386,10 @@ button {
   .asset-history-event-top { align-items: flex-start; flex-direction: column; gap: 3px; }
   .asset-mobile-actions { flex-wrap: wrap; }
   .asset-mobile-actions > .asset-history-button,
-  .asset-mobile-actions > .asset-edit-button { flex: 1; }
+  .asset-mobile-actions > .asset-edit-button,
+  .asset-mobile-actions > .asset-assignment-button { flex: 1; }
+  .asset-current-assignments article { grid-template-columns: minmax(0, 1fr) auto; }
+  .asset-assignment-kind { grid-column: 1 / -1; }
   .asset-form { grid-template-columns: minmax(0, 1fr); gap: 11px; }
   .asset-unverified-note,
   .asset-form .asset-form-wide,

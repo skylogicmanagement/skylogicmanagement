@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Box, CalendarDays, FileClock, Pencil, Plus, RefreshCw, Search, X } from 'lucide-react'
+import { AlertTriangle, Box, CalendarDays, FileClock, Link2, Pencil, Plus, RefreshCw, Search, X } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { supabase } from '../../lib/supabase'
 import { AssetHistoryModal } from './AssetHistoryModal'
+import { AssetAssignmentModal, type CurrentAssetAssignment } from './AssetAssignmentModal'
 
 type AssetType = { code: string; name: string }
 type AssetStatusOption = { code: string; name: string }
@@ -85,6 +86,8 @@ export function AssetsPage({ userId }: { userId: string }) {
   const [droneDetails, setDroneDetails] = useState<Record<string, { total_flight_hours: number | null; hours_since_maintenance: number | null; last_maintenance_at: string | null; next_maintenance_hours: number | null }>>({})
   const [orgId, setOrgId] = useState('')
   const [canManage, setCanManage] = useState(false)
+  const [canManageAssignments, setCanManageAssignments] = useState(false)
+  const [currentAssignments, setCurrentAssignments] = useState<CurrentAssetAssignment[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [formError, setFormError] = useState('')
@@ -94,6 +97,7 @@ export function AssetsPage({ userId }: { userId: string }) {
   const [formOpen, setFormOpen] = useState(false)
   const [editingAsset, setEditingAsset] = useState<AssetRow | null>(null)
   const [historyAsset, setHistoryAsset] = useState<AssetRow | null>(null)
+  const [assigningAsset, setAssigningAsset] = useState<AssetRow | null>(null)
   const [saving, setSaving] = useState(false)
   const [draft, setDraft] = useState(emptyDraft)
 
@@ -120,7 +124,17 @@ export function AssetsPage({ userId }: { userId: string }) {
     }
 
     setOrgId(membership.org_id)
-    const [assetsResult, typesResult, statusesResult, locationsResult, suppliersResult, profilesResult, permissionResult] = await Promise.all([
+    const [
+      assetsResult,
+      typesResult,
+      statusesResult,
+      locationsResult,
+      suppliersResult,
+      profilesResult,
+      permissionResult,
+      assignmentManagePermission,
+      assignmentReadPermission,
+    ] = await Promise.all([
       supabase
         .from('assets')
         .select('id, org_id, internal_code, name, asset_type_code, serial_number, brand, model, acquired_at, supplier_id, purchase_document_path, acquisition_value, status, location_id, responsible_user_id, notes, updated_at')
@@ -157,9 +171,25 @@ export function AssetsPage({ userId }: { userId: string }) {
         target_org: membership.org_id,
         permission: 'assets.manage',
       }),
+      supabase.rpc('has_org_permission', {
+        target_org: membership.org_id,
+        permission: 'operations.manage',
+      }),
+      supabase.rpc('has_org_permission', {
+        target_org: membership.org_id,
+        permission: 'operations.read',
+      }),
     ])
 
-    const error = assetsResult.error ?? typesResult.error ?? statusesResult.error ?? locationsResult.error ?? suppliersResult.error ?? profilesResult.error ?? permissionResult.error
+    const error = assetsResult.error
+      ?? typesResult.error
+      ?? statusesResult.error
+      ?? locationsResult.error
+      ?? suppliersResult.error
+      ?? profilesResult.error
+      ?? permissionResult.error
+      ?? assignmentManagePermission.error
+      ?? assignmentReadPermission.error
     if (error) {
       setLoadError(error.message)
     } else {
@@ -174,6 +204,24 @@ export function AssetsPage({ userId }: { userId: string }) {
       setSuppliers(suppliersResult.data ?? [])
       setMembers(profilesResult.data ?? [])
       setCanManage(permissionResult.data === true)
+      const canReadAssignments = assignmentReadPermission.data === true || assignmentManagePermission.data === true
+      setCanManageAssignments(assignmentManagePermission.data === true)
+      if (canReadAssignments) {
+        const { data: assignmentRows, error: assignmentError } = await supabase
+          .from('asset_assignments')
+          .select('id, asset_id, assigned_asset_id, assigned_user_id, assignment_type, started_at, reason')
+          .eq('org_id', membership.org_id)
+          .is('ended_at', null)
+          .order('started_at', { ascending: false })
+        if (assignmentError) {
+          setLoadError(assignmentError.message)
+          setLoading(false)
+          return
+        }
+        setCurrentAssignments(assignmentRows ?? [])
+      } else {
+        setCurrentAssignments([])
+      }
 
       const droneIds = assetRows.filter((asset) => asset.asset_type_code === 'drone').map((asset) => asset.id)
       const batteryIds = assetRows.filter((asset) => asset.asset_type_code === 'battery').map((asset) => asset.id)
@@ -223,6 +271,28 @@ export function AssetsPage({ userId }: { userId: string }) {
   const filteredAssets = activeType === 'all'
     ? matchingAssets
     : matchingAssets.filter((asset) => asset.asset_type_code === activeType)
+  const assetsById = new Map(assets.map((asset) => [asset.id, asset]))
+  const membersById = new Map(members.map((member) => [member.user_id, member]))
+  const activeAssignmentsByAsset = new Map<string, CurrentAssetAssignment[]>()
+  for (const assignment of currentAssignments) {
+    const existing = activeAssignmentsByAsset.get(assignment.asset_id) ?? []
+    existing.push(assignment)
+    activeAssignmentsByAsset.set(assignment.asset_id, existing)
+  }
+  function assignmentSummary(asset: AssetRow) {
+    const active = activeAssignmentsByAsset.get(asset.id) ?? []
+    const parent = active.find((assignment) => assignment.assignment_type === 'asset')
+    const user = active.find((assignment) => assignment.assignment_type === 'user')
+    const parts = [
+      parent ? assetsById.get(parent.assigned_asset_id ?? '')?.name ?? 'Dron asignado' : '',
+      user
+        ? membersById.get(user.assigned_user_id ?? '')?.display_name ?? 'Responsable asignado'
+        : asset.responsible_user_id
+          ? membersById.get(asset.responsible_user_id)?.display_name ?? 'Responsable asignado'
+          : '',
+    ].filter(Boolean)
+    return parts.length ? parts.join(' · ') : 'Sin asignación manual'
+  }
 
   async function handleCreate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -478,6 +548,22 @@ export function AssetsPage({ userId }: { userId: string }) {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {assigningAsset && (
+          <AssetAssignmentModal
+            asset={assigningAsset}
+            assets={assets}
+            members={members}
+            assignments={activeAssignmentsByAsset.get(assigningAsset.id) ?? []}
+            onClose={() => setAssigningAsset(null)}
+            onChanged={async () => {
+              setLoading(true)
+              await loadData()
+            }}
+          />
+        )}
+      </AnimatePresence>
+
       <div className="assets-panel">
         <div className="assets-panel-heading"><div><h2>{activeType === 'all' ? 'Todos los activos' : assetTypeOptions.find((type) => type.code === activeType)?.name ?? 'Activos'}</h2><p>{activeType === 'all' ? 'Equipos y componentes registrados en la empresa' : 'Activos de esta categoría'}</p></div><span className="assets-total">{filteredAssets.length} registros</span></div>
         {loading ? (
@@ -485,7 +571,7 @@ export function AssetsPage({ userId }: { userId: string }) {
         ) : filteredAssets.length ? (
           <div className="assets-table-wrap">
             <table className="assets-table">
-              <thead><tr><th>Activo</th><th>Tipo</th><th>Marca / modelo</th><th>Número de serie</th><th>Ubicación</th><th>Dato técnico</th><th>Estado</th><th>Hoja de vida</th>{canManage && <th>Ficha</th>}</tr></thead>
+              <thead><tr><th>Activo</th><th>Tipo</th><th>Marca / modelo</th><th>Número de serie</th><th>Ubicación</th><th>Dato técnico</th><th>Estado</th><th>Asignación</th>{canManageAssignments && <th>Gestionar</th>}<th>Hoja de vida</th>{canManage && <th>Ficha</th>}</tr></thead>
               <tbody>
                 {filteredAssets.map((asset) => (
                   <tr key={asset.id}>
@@ -508,6 +594,8 @@ export function AssetsPage({ userId }: { userId: string }) {
                         {statuses.filter((status) => !['in_transit', 'in_operation'].includes(status.code)).map((status) => <option value={status.code} key={status.code}>{status.name}</option>)}
                       </select>
                     ) : <span className={`asset-status-pill asset-status-${asset.status}`}><i />{statusNames[asset.status] ?? asset.status}</span>}</td>
+                    <td>{assignmentSummary(asset)}</td>
+                    {canManageAssignments && <td><button className="asset-assignment-button" type="button" onClick={() => setAssigningAsset(asset)}><Link2 size={14} /> Asignar</button></td>}
                     <td><button className="asset-history-button" type="button" onClick={() => setHistoryAsset(asset)}><FileClock size={14} /> Ver historial</button></td>
                     {canManage && <td><button className="asset-edit-button" type="button" onClick={() => openEditForm(asset)} aria-label={`Editar ficha de ${asset.name}`}><Pencil size={14} /> Editar</button></td>}
                   </tr>
@@ -522,6 +610,7 @@ export function AssetsPage({ userId }: { userId: string }) {
                   <div className="asset-mobile-details">
                     <span><small>Marca / modelo</small>{[asset.brand, asset.model].filter(Boolean).join(' · ') || 'Pendiente'}</span>
                     <span><small>Ubicación</small>{asset.location_id ? locations[asset.location_id] ?? 'No disponible' : 'Sin ubicación confirmada'}</span>
+                    <span><small>Asignación actual</small>{assignmentSummary(asset)}</span>
                     {asset.asset_type_code === 'battery' && <span><small>Ciclos de carga</small>{batteryDetails[asset.id]?.charge_cycles ?? 'Sin registrar'}</span>}
                     {asset.asset_type_code === 'drone' && <span><small>Horas de vuelo</small>{droneDetails[asset.id]?.total_flight_hours ?? 'Sin registros'}</span>}
                   </div>
@@ -531,10 +620,12 @@ export function AssetsPage({ userId }: { userId: string }) {
                         {statuses.filter((status) => !['in_transit', 'in_operation'].includes(status.code)).map((status) => <option value={status.code} key={status.code}>{status.name}</option>)}
                       </select>
                       <button className="asset-edit-button" type="button" onClick={() => openEditForm(asset)}><Pencil size={14} /> Editar ficha</button>
+                      {canManageAssignments && <button className="asset-assignment-button" type="button" onClick={() => setAssigningAsset(asset)}><Link2 size={14} /> Asignar</button>}
                       <button className="asset-history-button" type="button" onClick={() => setHistoryAsset(asset)}><FileClock size={14} /> Hoja de vida</button>
                     </div>
                   ) : <div className="asset-mobile-actions">
                     <span className={`asset-status-pill asset-status-${asset.status}`}><i />{statusNames[asset.status] ?? asset.status}</span>
+                    {canManageAssignments && <button className="asset-assignment-button" type="button" onClick={() => setAssigningAsset(asset)}><Link2 size={14} /> Asignar</button>}
                     <button className="asset-history-button" type="button" onClick={() => setHistoryAsset(asset)}><FileClock size={14} /> Hoja de vida</button>
                   </div>}
                 </article>

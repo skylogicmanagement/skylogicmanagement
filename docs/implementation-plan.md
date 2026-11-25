@@ -42,8 +42,10 @@ la interfaz. Edición transaccional de fichas con serial, adquisición, proveedo
 ubicación, responsable, observaciones y datos técnicos de baterías implementada.
 La lista se organiza por categorías dinámicas con conteos y búsqueda por tipo. La hoja
 de vida muestra el resumen del activo y una línea de tiempo de cambios, operaciones,
-asignaciones, vuelos, mantenimientos y repuestos según permisos. Faltan adjuntos y
-flujos de asignación manual.
+asignaciones, vuelos, mantenimientos y repuestos según permisos. El flujo manual permite
+asignar responsables y asociar componentes a drones, con liberación histórica y
+sincronización de responsables de ficha. Faltan adjuntos y pruebas con datos reales de
+Supabase.
 
 ## Fase 5: Operaciones
 
