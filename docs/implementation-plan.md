@@ -38,7 +38,9 @@ operativos aparecen al configurar Supabase.
 - Implementar fichas de vida y asignaciones temporales.
 
 Estado: migración base preparada; registro y búsqueda inicial de activos ya conectados a
-la interfaz. Faltan fichas completas y flujos de asignación.
+la interfaz. Edición transaccional de fichas con serial, adquisición, proveedor,
+ubicación, responsable, observaciones y datos técnicos de baterías implementada.
+Faltan fichas históricas completas, adjuntos y flujos de asignación manual.
 
 ## Fase 5: Operaciones
 

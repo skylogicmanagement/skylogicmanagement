@@ -11,13 +11,14 @@ habilitar el acceso seguro.
 - Fase 1 completada: arquitectura y modelo documentados.
 - Fase 2 completada: React, Supabase, Tailwind, HashRouter y GitHub Pages configurados.
 - Fase 3: identidad visual, acceso privado y dashboard inicial implementados.
-- Fase 4 iniciada: listado, búsqueda y alta de activos con estado inicial no verificado.
+- Fase 4: listado, búsqueda, alta y edición de fichas de activos con seriales,
+  adquisición, proveedor, ubicación, responsable y datos técnicos de baterías.
 - Fase 5 iniciada: operaciones, salidas, devoluciones parciales, lectura de horómetro y
   fincas con formularios transaccionales y sincronización en tiempo real.
-- Fases 6 y 7 iniciadas: mantenimiento transaccional, planes preventivos, repuestos
+- Fases 4, 6 y 7 iniciadas: edición de fichas, mantenimiento transaccional, repuestos
   serializados, saldos por ubicación y movimientos de inventario.
-- La fase de inventario requiere aplicar su migración incremental después del esquema
-  inicial y la migración de mantenimiento.
+- La edición de fichas de activos requiere aplicar la migración incremental
+  `20261125150000_asset_profile_editing.sql`.
 - Auditoría visual, asociaciones automáticas de repuestos al mantenimiento, usuarios y
   reportes siguen en desarrollo.
 - Sigue [las instrucciones de configuración](docs/setup.md) antes de usar la nueva
@@ -34,6 +35,7 @@ habilitar el acceso seguro.
 - [Migración inicial de Supabase](supabase/migrations/20261125130000_initial_schema.sql)
 - [Flujos transaccionales de mantenimiento](supabase/migrations/20261125134500_maintenance_workflows.sql)
 - [Flujos transaccionales de inventario](supabase/migrations/20261125143000_inventory_workflows.sql)
+- [Edición segura de fichas de activos](supabase/migrations/20261125150000_asset_profile_editing.sql)
 
 ## Ejecucion local
 

@@ -454,6 +454,26 @@ export interface Database {
         }
         Returns: string
       }
+      update_asset_profile: {
+        Args: {
+          p_org_id: string
+          p_asset_id: string
+          p_internal_code: string
+          p_name: string
+          p_serial_number: string | null
+          p_brand: string | null
+          p_model: string | null
+          p_acquired_at: string | null
+          p_supplier_id: string | null
+          p_acquisition_value: number | null
+          p_location_id: string | null
+          p_responsible_user_id: string | null
+          p_notes: string | null
+          p_battery_charge_cycles?: number | null
+          p_battery_technical_notes?: string | null
+        }
+        Returns: string
+      }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>

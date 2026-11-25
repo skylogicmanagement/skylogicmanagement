@@ -15,9 +15,12 @@
    - `supabase/migrations/20261125130000_initial_schema.sql`
    - `supabase/migrations/20261125134500_maintenance_workflows.sql`
    - `supabase/migrations/20261125143000_inventory_workflows.sql`
+   - `supabase/migrations/20261125150000_asset_profile_editing.sql`
    Si ya ejecutaste la primera migración, ejecuta solamente la segunda; no vuelvas a
    ejecutar la primera sobre un esquema ya creado. Si ya ejecutaste las migraciones
    inicial y de mantenimiento, ejecuta solamente la de inventario.
+   Si ya ejecutaste las tres migraciones anteriores, ejecuta solamente la de edición
+   de fichas de activos.
 4. Invita a la primera cuenta desde Authentication. No habilites el registro público.
 5. Obtén el UUID de esa cuenta en Authentication y ejecuta, reemplazando el texto
    marcador:
@@ -52,8 +55,9 @@ Las migraciones configuran tablas privadas, RLS, triggers de auditoría, reglas 
 asignación, horas de vuelo, movimientos de inventario, flujos transaccionales de
 mantenimiento y un bucket privado de archivos. La migración de inventario agrega
 control individual de seriales, saldos por ubicación y funciones transaccionales para
-crear artículos y registrar movimientos. No ingreses datos reales hasta confirmar que
-las tres migraciones terminaron correctamente.
+crear artículos y registrar movimientos. La migración de fichas permite editar los
+datos generales y técnicos permitidos desde la aplicación. No ingreses datos reales
+hasta confirmar que las migraciones aplicables terminaron correctamente.
 
 ## Instalacion local
 

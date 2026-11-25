@@ -92,6 +92,11 @@ creación de artículos y los movimientos se realizan mediante funciones transac
 El historial de movimientos no permite edición o borrado, las salidas validan el saldo
 de la ubicación y las transferencias conservan el total disponible.
 
+La edición de fichas de activos valida organización, ubicación, proveedor y responsable
+en la base de datos. Cada cambio genera auditoría; las horas de vuelo no se pueden
+alterar desde el formulario y los datos de ubicación/responsable quedan bloqueados
+mientras el activo tenga una operación abierta.
+
 Una corrección debe:
 
 1. Conserva el evento original.
