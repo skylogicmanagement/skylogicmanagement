@@ -118,6 +118,10 @@ administrativo de correcciones y pruebas de integridad con datos reales.
 - Documentación de operación.
 - Despliegue final a GitHub Pages.
 
+Estado: consulta de vuelos y horas por periodo y dron, resumen por finca y exportación
+CSV implementados. Siguen pendientes otros reportes operativos/administrativos,
+exportaciones Excel/PDF y pruebas integrales contra Supabase.
+
 ## Criterios de aprobación de la Fase 1
 
 - Entidades y relaciones aprobadas.

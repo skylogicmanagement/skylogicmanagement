@@ -22,6 +22,7 @@
    - `supabase/migrations/20261125161000_pilot_management.sql`
    - `supabase/migrations/20261125162000_inventory_minimum_stock.sql`
    - `supabase/migrations/20261125163000_private_document_attachments.sql`
+   - `supabase/migrations/20261125164000_reporting_access.sql`
    La migración de alertas usa `create or replace` y se puede volver a ejecutar para
    actualizar la función si se corrige. Si ya la ejecutaste y las alertas muestran un
    error de columna ambigua, vuelve a ejecutar únicamente
@@ -47,6 +48,10 @@
    `20261125163000_private_document_attachments.sql`, una sola vez. Habilita archivos
    privados para activos, intervenciones e inventario, y limita la lectura a los permisos
    del módulo asociado.
+   Si ya ejecutaste las anteriores, aplica únicamente
+   `20261125164000_reporting_access.sql`, una sola vez. Permite que el permiso
+   `reports.read` consulte los datos necesarios para los informes sin otorgar permisos
+   para crear o modificar registros.
 4. Invita a la primera cuenta desde Authentication. No habilites el registro público.
 5. Obtén el UUID de esa cuenta en Authentication y ejecuta, reemplazando el texto
    marcador:
@@ -97,6 +102,8 @@ las migraciones aplicables terminaron correctamente.
 Los adjuntos son privados, aceptan JPG, PNG, WebP y PDF de hasta 25 MB, y se consultan
 mediante enlaces temporales autenticados desde la ficha del activo, el historial de
 mantenimiento o el artículo de inventario.
+El módulo Reportes ofrece el detalle de horas de vuelo por fechas, dron y finca y descarga
+un CSV; requiere `reports.read`.
 
 ## Instalacion local
 

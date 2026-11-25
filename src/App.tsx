@@ -9,6 +9,7 @@ import {
   Boxes,
   ChevronDown,
   ClipboardList,
+  ChartNoAxesColumn,
   Clock3,
   Command,
   ContactRound,
@@ -35,6 +36,7 @@ import { MaintenancePage } from './features/maintenance/MaintenancePage'
 import { InventoryPage } from './features/inventory/InventoryPage'
 import { PilotsPage } from './features/pilots/PilotsPage'
 import { AuditPage } from './features/audit/AuditPage'
+import { ReportsPage } from './features/reports/ReportsPage'
 import { supabase, supabaseConfigError } from './lib/supabase'
 
 const FlightChart = lazy(() => import('./components/FlightChart'))
@@ -55,6 +57,7 @@ const navigation = [
   { label: 'Pilotos', icon: ContactRound, section: 'GESTIÓN' },
   { label: 'Mantenimiento', icon: Wrench, section: 'GESTIÓN' },
   { label: 'Inventario', icon: PackageCheck, section: 'GESTIÓN' },
+  { label: 'Reportes', icon: ChartNoAxesColumn, section: 'ANÁLISIS' },
   { label: 'Auditoría', icon: ShieldCheck, section: 'CONTROL' },
 ]
 
@@ -422,7 +425,7 @@ function Workspace({ session }: { session: Session }) {
           <ChevronDown size={15} />
         </div>
         <nav className="nav-groups" aria-label="Navegación principal">
-          {['GENERAL', 'GESTIÓN', 'CONTROL'].map((section) => (
+          {['GENERAL', 'GESTIÓN', 'ANÁLISIS', 'CONTROL'].map((section) => (
             <div className="nav-group" key={section}>
               <span className="nav-label">{section}</span>
               {navigation.filter((item) => item.section === section).map(({ label, icon: Icon }) => (
@@ -490,6 +493,8 @@ function Workspace({ session }: { session: Session }) {
             <MaintenancePage />
           ) : page === 'Inventario' ? (
             <InventoryPage />
+          ) : page === 'Reportes' ? (
+            <ReportsPage />
           ) : page === 'Auditoría' ? (
             <AuditPage userId={session.user.id} />
           ) : (

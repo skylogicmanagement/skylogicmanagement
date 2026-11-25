@@ -1,0 +1,235 @@
+.reports-page {
+  display: grid;
+  gap: 13px;
+}
+
+.reports-toolbar,
+.reports-table-section {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface);
+}
+
+.reports-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.reports-toolbar > div:first-child {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+.reports-toolbar > div:first-child strong {
+  color: var(--text);
+  font-size: 11px;
+}
+
+.reports-toolbar > div:first-child span {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.reports-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.reports-controls label,
+.reports-controls select {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-raised);
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.reports-controls input,
+.reports-controls select {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+}
+
+.reports-controls select {
+  max-width: 165px;
+  font-size: 9px;
+}
+
+.reports-controls option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.reports-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.reports-stats article {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.reports-stats article > span {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 33px;
+  height: 33px;
+  border-radius: 9px;
+  background: rgba(39, 132, 245, 0.11);
+  color: #63aaff;
+}
+
+.reports-stats article > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.reports-stats strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 16px;
+  text-overflow: ellipsis;
+}
+
+.reports-stats small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.reports-table-section > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.reports-table-section h2 {
+  margin: 0 0 4px;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.reports-table-section header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.reports-table-section header > span {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.reports-table-wrap {
+  overflow-x: auto;
+}
+
+.reports-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.reports-table th {
+  padding: 10px 12px;
+  background: var(--surface-raised);
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 600;
+}
+
+.reports-table td {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  color: var(--text);
+  font-size: 9px;
+}
+
+.reports-table td strong,
+.reports-table td small {
+  display: block;
+}
+
+.reports-table td small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.reports-message {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 32px 18px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 9px;
+}
+
+.reports-message strong {
+  color: var(--text);
+  font-size: 11px;
+}
+
+@media (max-width: 1060px) {
+  .reports-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .reports-controls {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 700px) {
+  .reports-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .reports-controls label {
+    flex: 1 1 145px;
+  }
+
+  .reports-controls select {
+    flex: 1 1 145px;
+    max-width: none;
+  }
+
+  .reports-controls > button:last-child {
+    flex: 1;
+    justify-content: center;
+  }
+}
