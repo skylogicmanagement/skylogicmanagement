@@ -543,6 +543,7 @@ export function AssetsPage({ userId }: { userId: string }) {
             assets={assets.map(({ id, name, internal_code }) => ({ id, name, internal_code }))}
             locations={locationOptions.map(({ id, name }) => ({ id, name }))}
             members={members}
+            canUpload={canManage}
             onClose={() => setHistoryAsset(null)}
           />
         )}

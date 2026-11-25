@@ -312,6 +312,32 @@ export interface Database {
           notes?: string | null
         }
       >
+      documents: Table<
+        {
+          id: string
+          org_id: string
+          asset_id: string | null
+          operation_id: string | null
+          maintenance_record_id: string | null
+          inventory_item_id: string | null
+          storage_path: string
+          file_name: string
+          content_type: string | null
+          uploaded_by: string
+          uploaded_at: string
+        },
+        {
+          org_id: string
+          storage_path: string
+          file_name: string
+          content_type?: string | null
+          asset_id?: string | null
+          operation_id?: string | null
+          maintenance_record_id?: string | null
+          inventory_item_id?: string | null
+          uploaded_by?: string
+        }
+      >
       inventory_items: Table<
         {
           id: string

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Box, CalendarDays, Clock3, FileClock, MapPin, X } from 'lucide-react'
+import { AlertTriangle, Box, CalendarDays, Clock3, FileClock, MapPin, Paperclip, X } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { supabase } from '../../lib/supabase'
+import { DocumentAttachments } from '../documents/DocumentAttachments'
 
 type AssetHistoryAsset = {
   id: string
@@ -65,12 +66,14 @@ export function AssetHistoryModal({
   assets,
   locations,
   members,
+  canUpload,
   onClose,
 }: {
   asset: AssetHistoryAsset
   assets: RelatedAsset[]
   locations: Location[]
   members: Member[]
+  canUpload: boolean
   onClose: () => void
 }) {
   const reduceMotion = useReducedMotion()
@@ -78,6 +81,7 @@ export function AssetHistoryModal({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [sources, setSources] = useState<string[]>([])
+  const [attachmentsOpen, setAttachmentsOpen] = useState(false)
   const assetName = useMemo(() => new Map(assets.map((item) => [item.id, `${item.name} · ${item.internal_code}`])), [assets])
   const locationName = useMemo(() => new Map(locations.map((location) => [location.id, location.name])), [locations])
   const memberName = useMemo(() => new Map(members.map((member) => [member.user_id, member.display_name])), [members])
@@ -340,6 +344,10 @@ export function AssetHistoryModal({
           <div><small>Responsable actual</small><span>{asset.responsible_user_id ? memberName.get(asset.responsible_user_id) ?? 'Usuario registrado' : 'Sin asignar'}</span></div>
           {asset.notes && <div className="asset-history-summary-wide"><small>Observaciones</small><span>{asset.notes}</span></div>}
         </div>
+        <div className="asset-history-attachments">
+          <div><strong>Documentos del activo</strong><span>Facturas, fotografías y otros soportes privados.</span></div>
+          <button className="asset-history-button" type="button" onClick={() => setAttachmentsOpen(true)}><Paperclip size={14} /> Adjuntos</button>
+        </div>
 
         <section className="asset-history-timeline-section">
           <div className="asset-history-timeline-heading">
@@ -368,6 +376,16 @@ export function AssetHistoryModal({
           )}
         </section>
       </motion.section>
+      {attachmentsOpen && (
+        <DocumentAttachments
+          orgId={asset.org_id}
+          entityId={asset.id}
+          entityName={`${asset.name} · ${asset.internal_code}`}
+          targetField="asset_id"
+          canUpload={canUpload}
+          onClose={() => setAttachmentsOpen(false)}
+        />
+      )}
     </div>
   )
 }

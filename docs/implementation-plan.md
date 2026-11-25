@@ -44,8 +44,9 @@ La lista se organiza por categorías dinámicas con conteos y búsqueda por tipo
 de vida muestra el resumen del activo y una línea de tiempo de cambios, operaciones,
 asignaciones, vuelos, mantenimientos y repuestos según permisos. El flujo manual permite
 asignar responsables y asociar componentes a drones, con liberación histórica y
-sincronización de responsables de ficha. Faltan adjuntos y pruebas con datos reales de
-Supabase.
+sincronización de responsables de ficha. Adjuntos privados con carga y enlaces temporales
+implementados; se pueden asociar a activos, intervenciones de mantenimiento y artículos
+de inventario. Faltan pruebas con datos reales de Supabase.
 
 ## Fase 5: Operaciones
 
@@ -71,8 +72,8 @@ registrar cambios de piloto mientras el dron siga en campo.
 Estado: registro de inicio/cierre, bloqueo del activo mientras hay una intervención
 abierta, planes preventivos configurables y uso transaccional de repuestos al cierre
 implementados. Alertas por vencer dentro del 10% del intervalo de horas o 7 días,
-vencidas y con datos base faltantes implementadas. Faltan adjuntos y pruebas con datos
-reales de Supabase.
+vencidas y con datos base faltantes implementadas. Adjuntos privados por intervención
+implementados. Faltan pruebas con datos reales de Supabase.
 
 ## Fase 7: Inventario
 
@@ -85,7 +86,8 @@ Estado: catálogo de artículos, seriales únicos, saldos por ubicación, entrad
 consumos, instalaciones, traslados y bajas implementados con funciones transaccionales.
 Los consumos de mantenimiento quedan vinculados a su intervención y activo. Los mínimos
 configurables por artículo y las alertas de existencia agotada o bajo el umbral también
-están implementados. Faltan adjuntos y pruebas con datos reales de Supabase.
+están implementados. Adjuntos privados por artículo implementados. Faltan pruebas con
+datos reales de Supabase.
 
 ## Fase 8: Auditoria
 

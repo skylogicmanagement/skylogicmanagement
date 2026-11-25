@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, CalendarClock, Check, ClipboardCheck, Plus, RefreshCw, Trash2, Wrench, X } from 'lucide-react'
+import { AlertTriangle, CalendarClock, Check, ClipboardCheck, Paperclip, Plus, RefreshCw, Trash2, Wrench, X } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { supabase } from '../../lib/supabase'
+import { DocumentAttachments } from '../documents/DocumentAttachments'
 import './maintenance.css'
 
 type Asset = { id: string; internal_code: string; name: string; asset_type_code: string; status: string }
@@ -115,6 +116,7 @@ export function MaintenancePage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [planOpen, setPlanOpen] = useState(false)
   const [completing, setCompleting] = useState<MaintenanceRecord | null>(null)
+  const [attachmentsRecord, setAttachmentsRecord] = useState<MaintenanceRecord | null>(null)
   const [assetNames, setAssetNames] = useState<Record<string, string>>({})
   const [draft, setDraft] = useState({
     asset_id: '',
@@ -532,6 +534,7 @@ export function MaintenancePage() {
                     <div><small>Costo</small><span>{formatCurrency(record.cost)}</span></div>
                     {record.next_intervention_at && <div><small>Próxima intervención</small><span>{formatDate(record.next_intervention_at)}</span></div>}
                   </div>
+                  <button className="secondary-button maintenance-attachments-button" type="button" onClick={() => setAttachmentsRecord(record)}><Paperclip size={14} /> Adjuntos</button>
                 </motion.article>
               )
             })}
@@ -560,6 +563,16 @@ export function MaintenancePage() {
       </section>
 
       <AnimatePresence>
+        {attachmentsRecord && (
+          <DocumentAttachments
+            orgId={orgId}
+            entityId={attachmentsRecord.id}
+            entityName={`${assetNames[attachmentsRecord.asset_id] ?? 'Activo'} · ${formatDate(attachmentsRecord.performed_at)}`}
+            targetField="maintenance_record_id"
+            canUpload={canManage}
+            onClose={() => setAttachmentsRecord(null)}
+          />
+        )}
         {createOpen && (
           <MaintenanceModal title="Registrar intervención" onClose={() => setCreateOpen(false)} reducedMotion={Boolean(reduceMotion)}>
             <form className="maintenance-form" onSubmit={(event) => void createMaintenance(event)}>

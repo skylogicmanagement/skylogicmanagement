@@ -342,6 +342,10 @@
   gap: 9px 16px;
 }
 
+.maintenance-attachments-button {
+  margin-top: 12px;
+}
+
 .maintenance-record-details > div {
   display: grid;
   min-width: 0;

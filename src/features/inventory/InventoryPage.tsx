@@ -7,6 +7,7 @@ import {
   Check,
   CircleDollarSign,
   Package,
+  Paperclip,
   Plus,
   RefreshCw,
   Search,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { supabase } from '../../lib/supabase'
+import { DocumentAttachments } from '../documents/DocumentAttachments'
 import './inventory.css'
 
 type InventoryItem = {
@@ -172,6 +174,7 @@ export function InventoryPage() {
   const [itemModalOpen, setItemModalOpen] = useState(false)
   const [movementModalOpen, setMovementModalOpen] = useState(false)
   const [savingMinimumId, setSavingMinimumId] = useState('')
+  const [attachmentsItem, setAttachmentsItem] = useState<InventoryItem | null>(null)
   const [itemDraft, setItemDraft] = useState<ItemDraft>(emptyItemDraft)
   const [movementDraft, setMovementDraft] = useState<MovementDraft>(emptyMovementDraft)
 
@@ -517,15 +520,18 @@ export function InventoryPage() {
                     <span><small>Proveedor</small><strong>{supplierNames.get(item.supplier_id ?? '') ?? '—'}</strong></span>
                     <span><small>Valor unitario</small><strong>{formatCurrency(item.unit_value)}</strong></span>
                   </div>
-                  {canManage && <div className="inventory-item-actions">
-                    <MinimumQuantityEditor
-                      key={`${item.id}-${item.minimum_quantity}`}
-                      value={Number(item.minimum_quantity)}
-                      saving={savingMinimumId === item.id}
-                      onSave={(value) => updateMinimumQuantity(item, value)}
-                    />
-                    <button className="inventory-item-move" type="button" onClick={() => openMovementForm(item.id)} aria-label={`Registrar movimiento de ${item.name}`}><ArrowLeftRight size={16} /><span>Movimiento</span></button>
-                  </div>}
+                  <div className="inventory-item-actions">
+                    <button className="inventory-item-move" type="button" onClick={() => setAttachmentsItem(item)}><Paperclip size={15} /><span>Adjuntos</span></button>
+                    {canManage && <>
+                      <MinimumQuantityEditor
+                        key={`${item.id}-${item.minimum_quantity}`}
+                        value={Number(item.minimum_quantity)}
+                        saving={savingMinimumId === item.id}
+                        onSave={(value) => updateMinimumQuantity(item, value)}
+                      />
+                      <button className="inventory-item-move" type="button" onClick={() => openMovementForm(item.id)} aria-label={`Registrar movimiento de ${item.name}`}><ArrowLeftRight size={16} /><span>Movimiento</span></button>
+                    </>}
+                  </div>
                 </article>
               )
             })}
@@ -563,6 +569,16 @@ export function InventoryPage() {
       </section>
 
       <AnimatePresence>
+        {attachmentsItem && (
+          <DocumentAttachments
+            orgId={orgId}
+            entityId={attachmentsItem.id}
+            entityName={`${attachmentsItem.name} · ${attachmentsItem.internal_code}`}
+            targetField="inventory_item_id"
+            canUpload={canManage}
+            onClose={() => setAttachmentsItem(null)}
+          />
+        )}
         {itemModalOpen && (
           <div className="inventory-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) setItemModalOpen(false) }}>
             <motion.section className="inventory-modal" role="dialog" aria-modal="true" aria-labelledby="inventory-item-title" initial={reduceMotion ? false : { opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.98 }}>

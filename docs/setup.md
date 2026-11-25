@@ -21,6 +21,7 @@
    - `supabase/migrations/20261125160000_asset_assignment_workflows.sql`
    - `supabase/migrations/20261125161000_pilot_management.sql`
    - `supabase/migrations/20261125162000_inventory_minimum_stock.sql`
+   - `supabase/migrations/20261125163000_private_document_attachments.sql`
    La migración de alertas usa `create or replace` y se puede volver a ejecutar para
    actualizar la función si se corrige. Si ya la ejecutaste y las alertas muestran un
    error de columna ambigua, vuelve a ejecutar únicamente
@@ -42,6 +43,10 @@
    `20261125162000_inventory_minimum_stock.sql`, una sola vez. Agrega el mínimo
    configurable por artículo y habilita su edición sin permitir cambiar existencias fuera
    de los movimientos registrados.
+   Si ya aplicaste las anteriores, ejecuta únicamente
+   `20261125163000_private_document_attachments.sql`, una sola vez. Habilita archivos
+   privados para activos, intervenciones e inventario, y limita la lectura a los permisos
+   del módulo asociado.
 4. Invita a la primera cuenta desde Authentication. No habilites el registro público.
 5. Obtén el UUID de esa cuenta en Authentication y ejecuta, reemplazando el texto
    marcador:
@@ -89,6 +94,9 @@ configura por artículo; cuando la existencia total es igual o inferior a ese m�
 aparece una alerta en Inventario. El valor cero desactiva solo el umbral; los artículos
 agotados se siguen mostrando como alerta. No ingreses datos reales hasta confirmar que
 las migraciones aplicables terminaron correctamente.
+Los adjuntos son privados, aceptan JPG, PNG, WebP y PDF de hasta 25 MB, y se consultan
+mediante enlaces temporales autenticados desde la ficha del activo, el historial de
+mantenimiento o el artículo de inventario.
 
 ## Instalacion local
 
