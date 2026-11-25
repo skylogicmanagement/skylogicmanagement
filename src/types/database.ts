@@ -50,6 +50,23 @@ type OperationRow = {
 export interface Database {
   public: {
     Tables: {
+      roles: Table<
+        { id: string; org_id: string; code: string; name: string },
+        { org_id: string; code: string; name: string; id?: string }
+      >
+      permissions: Table<
+        { code: string; description: string },
+        { code: string; description: string }
+      >
+      role_permissions: Table<
+        { org_id: string; role_id: string; permission_code: string },
+        { org_id: string; role_id: string; permission_code: string }
+      >
+      organization_user_contacts: Table<
+        { org_id: string; user_id: string; email: string; created_at: string },
+        never,
+        never
+      >
       assets: Table<
         AssetRow,
         Pick<AssetRow, 'org_id' | 'asset_type_code' | 'internal_code' | 'name'> &
@@ -663,6 +680,26 @@ export interface Database {
           p_battery_technical_notes?: string | null
         }
         Returns: string
+      }
+      create_org_membership: {
+        Args: {
+          p_org_id: string
+          p_user_id: string
+          p_role_id: string
+          p_display_name: string
+          p_phone: string | null
+          p_email: string
+        }
+        Returns: string
+      }
+      update_org_membership: {
+        Args: {
+          p_org_id: string
+          p_membership_id: string
+          p_role_id: string
+          p_active: boolean
+        }
+        Returns: undefined
       }
     }
     Enums: Record<string, never>

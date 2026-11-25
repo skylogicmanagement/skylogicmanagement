@@ -24,6 +24,7 @@
    - `supabase/migrations/20261125163000_private_document_attachments.sql`
    - `supabase/migrations/20261125164000_reporting_access.sql`
    - `supabase/migrations/20261125165000_maintenance_reporting_access.sql`
+   - `supabase/migrations/20261125170000_user_management.sql`
    La migración de alertas usa `create or replace` y se puede volver a ejecutar para
    actualizar la función si se corrige. Si ya la ejecutaste y las alertas muestran un
    error de columna ambigua, vuelve a ejecutar únicamente
@@ -56,6 +57,10 @@
    Si ya ejecutaste las anteriores, aplica únicamente
    `20261125165000_maintenance_reporting_access.sql`, una sola vez. Habilita la consulta
    de intervenciones y tipos de mantenimiento al permiso `reports.read`.
+   Si las migraciones anteriores ya están aplicadas, ejecuta únicamente
+   `20261125170000_user_management.sql`, una sola vez. Crea contactos de usuario visibles
+   únicamente a administradores, protege la última cuenta con `users.manage` y agrega las
+   funciones transaccionales para vincular miembros y cambiar roles o estado.
 4. Invita a la primera cuenta desde Authentication. No habilites el registro público.
 5. Obtén el UUID de esa cuenta en Authentication y ejecuta, reemplazando el texto
    marcador:
@@ -72,11 +77,26 @@ where r.org_id = 'c148841e-76e7-4ee2-b514-1ca7ce9836ad'::uuid
 on conflict (org_id, user_id) do nothing;
 ```
 
-La primera cuenta queda como administradora técnica. Luego podrá invitar personas desde
-Supabase Auth y asignarles su rol agregando su membresía. La pantalla de gestión de
-usuarios se implementará en una fase posterior. Cada miembro deberá completar su nombre
-visible desde el módulo Operaciones antes de ser seleccionado como responsable en una
-salida o devolución.
+La primera cuenta queda como administradora técnica. Después de aplicar la migración de
+gestión de usuarios, esta cuenta puede invitar y administrar miembros desde Configuración.
+Para que las invitaciones funcionen, publica la función segura de Supabase una sola vez:
+
+```powershell
+npx supabase login
+npx supabase link --project-ref TU_PROJECT_REF
+npx supabase secrets set APP_ORIGIN=https://skylogicmanagement.github.io
+npx supabase functions deploy invite-organization-user
+```
+
+La función usa las variables administradas `SUPABASE_URL`, `SUPABASE_ANON_KEY` y
+`SUPABASE_SERVICE_ROLE_KEY` del entorno Supabase. Nunca copies la clave `service_role` a
+la aplicación, GitHub Pages o el repositorio. La cuenta invitada recibirá el correo de
+Supabase Auth; configura SMTP de producción si no quieres depender del servicio de correo
+limitado de prueba. En Authentication > URL Configuration, configura como Site URL
+`https://skylogicmanagement.github.io/skylogicmanagement/` y agrega esa URL a la lista
+de redirecciones permitidas. Los usuarios existentes también pueden agregarse a la
+organización desde la misma pantalla. Cada miembro deberá completar su nombre visible
+antes de ser seleccionado como responsable en una salida o devolución.
 
 La creación de perfiles operativos no crea cuentas de autenticación ni otorga permisos:
 las cuentas se invitan desde Supabase Auth y el rol se asigna en `memberships`.

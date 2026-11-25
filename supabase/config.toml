@@ -1,0 +1,4 @@
+project_id = "sky-logic-management"
+
+[functions.invite-organization-user]
+verify_jwt = true

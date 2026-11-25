@@ -131,6 +131,13 @@ módulo correspondiente y se actualizan al abrir o solicitar actualización. El 
 se muestra en la barra lateral sin recorte. Estas funciones usan las tablas y permisos
 existentes, sin requerir una migración adicional.
 
+La sección Configuración permite consultar miembros y permisos, invitar cuentas nuevas,
+agregar cuentas existentes, cambiar roles y desactivar/reactivar su acceso a la organización.
+Una migración agrega la gestión transaccional de membresías y protege al último
+administrador. Las invitaciones usan una función de Supabase que no expone la clave
+administrativa. La migración y la función deben aplicarse/publicarse en el proyecto real;
+faltan pruebas integrales con cuentas de distintos roles.
+
 ## Criterios de aprobación de la Fase 1
 
 - Entidades y relaciones aprobadas.

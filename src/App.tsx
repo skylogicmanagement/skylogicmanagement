@@ -36,6 +36,7 @@ import { PilotsPage } from './features/pilots/PilotsPage'
 import { AuditPage } from './features/audit/AuditPage'
 import { ReportsPage } from './features/reports/ReportsPage'
 import { HeaderTools } from './features/global/HeaderTools'
+import { UsersPage } from './features/users/UsersPage'
 import { supabase, supabaseConfigError } from './lib/supabase'
 
 const FlightChart = lazy(() => import('./components/FlightChart'))
@@ -495,6 +496,8 @@ function Workspace({ session }: { session: Session }) {
             <ReportsPage />
           ) : page === 'Auditoría' ? (
             <AuditPage userId={session.user.id} />
+          ) : page === 'Configuración' ? (
+            <UsersPage userId={session.user.id} />
           ) : (
             <ModulePlaceholder page={page} onBack={() => setPage('Resumen')} />
           )}
