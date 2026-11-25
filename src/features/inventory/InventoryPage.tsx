@@ -329,10 +329,11 @@ export function InventoryPage() {
   const itemsWithStock = items.filter((item) => Number(item.quantity_on_hand) > 0).length
   const totalValue = items.reduce((sum, item) => sum + Number(item.quantity_on_hand) * Number(item.unit_value ?? 0), 0)
   const serializedCount = items.filter((item) => item.is_serialized).length
-  const lowStockItems = items.filter((item) =>
-    Number(item.minimum_quantity) > 0
-      && Number(item.quantity_on_hand) <= Number(item.minimum_quantity),
-  )
+  const lowStockItems = items.filter((item) => {
+    const quantity = Number(item.quantity_on_hand)
+    return quantity === 0
+      || (Number(item.minimum_quantity) > 0 && quantity <= Number(item.minimum_quantity))
+  })
 
   function openMovementForm(itemId = '') {
     setMovementDraft({ ...emptyMovementDraft, item_id: itemId })
@@ -465,13 +466,13 @@ export function InventoryPage() {
         <article><span className="inventory-stat-icon inventory-stat-blue"><Package size={18} /></span><div><strong>{items.length}</strong><small>Artículos activos</small></div></article>
         <article><span className="inventory-stat-icon inventory-stat-green"><ArrowDownLeft size={18} /></span><div><strong>{itemsWithStock}</strong><small>Artículos con existencia</small></div></article>
         <article><span className="inventory-stat-icon inventory-stat-amber"><CircleDollarSign size={18} /></span><div><strong>{formatCurrency(totalValue)}</strong><small>Valor estimado del stock</small></div></article>
-        <article><span className="inventory-stat-icon inventory-stat-purple"><AlertTriangle size={18} /></span><div><strong>{lowStockItems.length}</strong><small>Alertas de stock mínimo</small></div></article>
+        <article><span className="inventory-stat-icon inventory-stat-purple"><AlertTriangle size={18} /></span><div><strong>{lowStockItems.length}</strong><small>Alertas de inventario</small></div></article>
       </div>
 
       {lowStockItems.length > 0 && (
         <section className="inventory-section inventory-alert-section" aria-labelledby="inventory-alert-title">
           <div className="inventory-section-heading">
-            <div><h2 id="inventory-alert-title">Alertas de stock mínimo</h2><p>Artículos que alcanzaron o están por debajo del umbral configurado.</p></div>
+            <div><h2 id="inventory-alert-title">Alertas de inventario</h2><p>Artículos agotados o por debajo del umbral de reposición configurado.</p></div>
             <span>{lowStockItems.length} alertas</span>
           </div>
           <div className="inventory-alert-list">

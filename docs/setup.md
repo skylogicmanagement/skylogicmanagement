@@ -86,8 +86,9 @@ mantenimiento permite consultar cantidades disponibles y descontar repuestos al 
 una intervención. La migración de alertas calcula vencimientos por horas y calendario
 con umbrales de proximidad de 10% del intervalo o 7 días. El mínimo de inventario se
 configura por artículo; cuando la existencia total es igual o inferior a ese mínimo,
-aparece una alerta en Inventario. El valor cero desactiva la alerta. No ingreses datos
-reales hasta confirmar que las migraciones aplicables terminaron correctamente.
+aparece una alerta en Inventario. El valor cero desactiva solo el umbral; los artículos
+agotados se siguen mostrando como alerta. No ingreses datos reales hasta confirmar que
+las migraciones aplicables terminaron correctamente.
 
 ## Instalacion local
 
