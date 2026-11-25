@@ -93,6 +93,12 @@ alertas por mínimos, adjuntos y pruebas con datos reales de Supabase.
 - Integridad encadenada.
 - Consultas y filtros históricos.
 
+Estado: consulta paginada de eventos protegida por `audit.read`, con filtros por entidad,
+acción y rango de fechas; detalle de snapshots, actor y referencia de transacción.
+Verificación manual de la cadena completa mediante `verify_audit_chain` implementada.
+El registro persistido y la cadena ya se generaban en la base de datos. Faltan flujo
+administrativo de correcciones y pruebas de integridad con datos reales.
+
 ## Fase 9: Usuarios y seguridad
 
 - Invitaciones.

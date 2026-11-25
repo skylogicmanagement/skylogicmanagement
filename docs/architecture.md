@@ -89,6 +89,8 @@ skylogicmanagement/
     features/
       assets/
         AssetsPage.tsx
+      audit/
+        AuditPage.tsx
       pilots/
         PilotsPage.tsx
       maintenance/

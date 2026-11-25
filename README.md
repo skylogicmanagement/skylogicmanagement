@@ -18,6 +18,8 @@ habilitar el acceso seguro.
 - Fase 5 iniciada: operaciones, salidas, devoluciones parciales, lectura de horómetro y
   fincas con formularios transaccionales y sincronización en tiempo real. Los pilotos
   se administran sin cuentas de acceso y se asignan por dron y operación.
+- Fase 8 iniciada: consulta de auditoría con filtros por entidad, acción y fechas,
+  detalle de cambios y verificación manual de la cadena SHA-256.
 - Fases 4, 6 y 7 iniciadas: edición de fichas, mantenimiento transaccional y descuento
   atómico de repuestos, con inventario serializado y saldos por ubicación.
 - La edición de fichas de activos requiere aplicar la migración incremental

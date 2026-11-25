@@ -210,6 +210,11 @@ queda relacionado con el activo y el mantenimiento.
 ordinarias y cada evento se encadena con SHA-256 por organización. `verify_audit_chain`
 comprueba la cadena. `audit_chain_heads` conserva la última huella.
 
+La sección Auditoría consulta los eventos en páginas de 30, filtra por entidad, acción y
+fechas en hora de Colombia, y muestra el actor cuando su perfil está disponible. La
+verificación es manual y recorre la cadena completa; no se ejecuta automáticamente al
+cambiar filtros ni al abrir la sección.
+
 `documents` guarda metadatos de archivos asociados a un activo, operación o
 mantenimiento. Los objetos se alojan en un bucket privado bajo una ruta que comienza
 con el UUID de organización y el UUID del usuario que carga el archivo.
