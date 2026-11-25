@@ -1,0 +1,250 @@
+type Table<Row, Insert, Update = Partial<Row>> = {
+  Row: Row
+  Insert: Insert
+  Update: Update
+  Relationships: []
+}
+
+type AssetRow = {
+  id: string
+  org_id: string
+  asset_type_code: string
+  internal_code: string
+  name: string
+  brand: string | null
+  model: string | null
+  serial_number: string | null
+  acquired_at: string | null
+  supplier_id: string | null
+  purchase_document_path: string | null
+  acquisition_value: number | null
+  status: string
+  location_id: string | null
+  responsible_user_id: string | null
+  notes: string | null
+  active: boolean
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+type OperationRow = {
+  id: string
+  org_id: string
+  operation_number: number
+  farm_id: string
+  municipality: string | null
+  field_location: string | null
+  status: string
+  operator_user_id: string | null
+  responsible_user_id: string | null
+  delivered_by_user_id: string | null
+  received_by_user_id: string | null
+  departure_at: string | null
+  returned_at: string | null
+  notes: string | null
+  created_by: string
+  created_at: string
+}
+
+export interface Database {
+  public: {
+    Tables: {
+      assets: Table<
+        AssetRow,
+        Pick<AssetRow, 'org_id' | 'asset_type_code' | 'internal_code' | 'name'> &
+          Partial<Omit<AssetRow, 'id' | 'created_by' | 'created_at' | 'updated_at'>>
+      >
+      asset_types: Table<
+        { id: string; org_id: string; code: string; name: string; active: boolean },
+        { org_id: string; code: string; name: string; id?: string; active?: boolean }
+      >
+      asset_statuses: Table<
+        { org_id: string; code: string; name: string; active: boolean },
+        { org_id: string; code: string; name: string; active?: boolean }
+      >
+      locations: Table<
+        {
+          id: string
+          org_id: string
+          name: string
+          location_type: string
+          address: string | null
+          municipality: string | null
+          department: string | null
+          latitude: number | null
+          longitude: number | null
+          active: boolean
+          created_at: string
+        },
+        { org_id: string; name: string; location_type?: string; active?: boolean }
+      >
+      memberships: Table<
+        {
+          id: string
+          org_id: string
+          user_id: string
+          role_id: string
+          active: boolean
+          created_at: string
+        },
+        { org_id: string; user_id: string; role_id: string; active?: boolean }
+      >
+      user_profiles: Table<
+        {
+          org_id: string
+          user_id: string
+          display_name: string
+          phone: string | null
+          created_at: string
+          updated_at: string
+        },
+        {
+          org_id: string
+          user_id: string
+          display_name: string
+          phone?: string | null
+          updated_at?: string
+        }
+      >
+      farms: Table<
+        {
+          id: string
+          org_id: string
+          name: string
+          owner_or_customer: string | null
+          municipality: string | null
+          department: string | null
+          address: string | null
+          latitude: number | null
+          longitude: number | null
+          contact_name: string | null
+          phone: string | null
+          notes: string | null
+          active: boolean
+          created_at: string
+        },
+        {
+          org_id: string
+          name: string
+          owner_or_customer?: string | null
+          municipality?: string | null
+          department?: string | null
+          address?: string | null
+          contact_name?: string | null
+          phone?: string | null
+          notes?: string | null
+          active?: boolean
+        }
+      >
+      operations: Table<
+        OperationRow,
+        Pick<OperationRow, 'org_id' | 'farm_id'> &
+          Partial<Omit<OperationRow, 'id' | 'operation_number' | 'org_id' | 'farm_id' | 'created_by' | 'created_at'>>
+      >
+      operation_statuses: Table<
+        { org_id: string; code: string; name: string; active: boolean },
+        { org_id: string; code: string; name: string; active?: boolean }
+      >
+      flight_logs: Table<
+        {
+          id: string
+          org_id: string
+          drone_asset_id: string
+          operation_id: string
+          farm_id: string
+          logged_at: string
+          hour_meter_start: number
+          hour_meter_end: number
+          flight_hours: number
+          recorded_by: string
+          notes: string | null
+        },
+        {
+          org_id: string
+          drone_asset_id: string
+          operation_id: string
+          farm_id: string
+          hour_meter_start: number
+          hour_meter_end: number
+          logged_at?: string
+          notes?: string | null
+        }
+      >
+      operation_assets: Table<
+        {
+          id: string
+          org_id: string
+          operation_id: string
+          asset_id: string
+          delivered_by_user_id: string | null
+          received_by_user_id: string | null
+          returned_by_user_id: string | null
+          return_received_by_user_id: string | null
+          departure_condition: string | null
+          return_condition: 'good' | 'damaged' | 'missing' | 'needs_inspection' | null
+          departure_at: string
+          returned_at: string | null
+          return_location_id: string | null
+          return_notes: string | null
+          created_by: string
+          created_at: string
+        },
+        {
+          org_id: string
+          operation_id: string
+          asset_id: string
+          delivered_by_user_id: string
+          received_by_user_id: string
+          departure_condition?: string | null
+          departure_at?: string
+        }
+      >
+    }
+    Views: Record<string, never>
+    Functions: {
+      has_org_permission: {
+        Args: { target_org: string; permission: string }
+        Returns: boolean
+      }
+      verify_audit_chain: {
+        Args: { target_org: string }
+        Returns: boolean
+      }
+      create_operation_with_assets: {
+        Args: {
+          p_org_id: string
+          p_farm_id: string
+          p_asset_ids: string[]
+          p_operator_user_id: string
+          p_responsible_user_id: string
+          p_delivered_by_user_id: string
+          p_received_by_user_id: string
+          p_departure_condition: string
+          p_municipality?: string | null
+          p_field_location?: string | null
+          p_departure_at?: string
+          p_notes?: string | null
+        }
+        Returns: string
+      }
+      return_operation_asset: {
+        Args: {
+          p_org_id: string
+          p_operation_asset_id: string
+          p_return_condition: string
+          p_returned_by_user_id: string
+          p_return_received_by_user_id: string
+          p_return_location_id?: string | null
+          p_return_notes?: string | null
+          p_hour_meter_start?: number | null
+          p_hour_meter_end?: number | null
+          p_returned_at?: string
+        }
+        Returns: string
+      }
+    }
+    Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
+  }
+}
