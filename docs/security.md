@@ -87,6 +87,11 @@ transaccionales autorizadas. Una intervención abierta mantiene el activo bloque
 contra operaciones, liberación de estado y desactivación; los registros cerrados no
 pueden reescribirse.
 
+El inventario tampoco acepta cambios directos de existencias desde el cliente: la
+creación de artículos y los movimientos se realizan mediante funciones transaccionales.
+El historial de movimientos no permite edición o borrado, las salidas validan el saldo
+de la ubicación y las transferencias conservan el total disponible.
+
 Una corrección debe:
 
 1. Conserva el evento original.

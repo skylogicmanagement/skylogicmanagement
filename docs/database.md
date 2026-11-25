@@ -28,7 +28,10 @@ erDiagram
     ASSETS ||--o{ MAINTENANCE_RECORDS : recibe
     MAINTENANCE_RECORDS ||--o{ INVENTORY_MOVEMENTS : consume
     INVENTORY_ITEMS ||--o{ INVENTORY_MOVEMENTS : suministra
-    INVENTORY_ITEMS ||--o{ INVENTORY_MOVEMENTS : registra
+    INVENTORY_ITEMS ||--o{ INVENTORY_LOCATION_BALANCES : desglosa
+    LOCATIONS ||--o{ INVENTORY_LOCATION_BALANCES : almacena
+    LOCATIONS ||--o{ INVENTORY_MOVEMENTS : origen_destino
+    ASSETS ||--o{ INVENTORY_MOVEMENTS : relaciona
 
     ASSETS ||--o{ DOCUMENTS : documenta
     OPERATIONS ||--o{ DOCUMENTS : adjunta
@@ -137,8 +140,10 @@ trabajadas y acumularlas a partir de registros validados.
 externa, diagnostico, actividades, resultado, observaciones, fecha de finalizacion y
 proxima intervencion.
 
-`maintenance_parts` relaciona repuestos consumidos o instalados con cada mantenimiento.
 `maintenance_plans` guarda intervalos configurables, como 50, 100 o 200 horas.
+Los movimientos de instalación o consumo pueden vincularse a una intervención y un
+activo. El descuento automático de repuestos desde el cierre del mantenimiento sigue
+pendiente.
 
 La migración de flujos de mantenimiento expone funciones transaccionales para iniciar y
 cerrar una intervención. Iniciarla cambia el estado del activo a mantenimiento; mientras
@@ -148,15 +153,20 @@ liberación. Los registros cerrados son inmutables para operaciones normales.
 
 ### Inventario
 
-`inventory_items` representa repuestos gestionados por cantidad. Los componentes
-serializados se gestionan como activos con identidad individual.
+`inventory_items` representa repuestos y componentes serializados. Los artículos con
+serie tienen una ficha individual, cantidad máxima de una unidad y unicidad de serie
+por organización. Conservan fabricante, modelo, referencia, fecha de compra, proveedor
+y valor unitario.
 
 `inventory_movements` es un libro de movimientos con entrada, salida, instalacion,
 consumo, traslado, devolucion, reparacion, retorno y baja.
 
-El saldo no puede ser negativo; las inserciones de movimientos bloquean el artículo y
-actualizan el saldo en la misma transacción. No se puede editar el saldo inicial
-directamente: se registra como movimiento.
+`inventory_location_balances` permite consultar existencias por ubicación. Las funciones
+`create_inventory_item` y `record_inventory_movement` registran artículos, ingresos,
+consumos, instalaciones y traslados junto con sus saldos en una transacción. El saldo
+no puede ser negativo; las transferencias conservan el total y mueven stock entre dos
+ubicaciones. No se puede editar el saldo directamente: toda existencia inicial también
+se registra como movimiento.
 
 ### Auditoria y archivos
 

@@ -70,6 +70,11 @@ horas/fecha, repuestos asociados y adjuntos.
 - Restricciones de existencias.
 - Reparaciones y bajas.
 
+Estado: catálogo de artículos, seriales únicos, saldos por ubicación, entradas,
+consumos, instalaciones, traslados y bajas implementados con funciones transaccionales.
+Faltan asociaciones automáticas desde el cierre de mantenimientos, alertas por mínimos,
+adjuntos y pruebas con datos reales de Supabase.
+
 ## Fase 8: Auditoria
 
 - Eventos confirmados.

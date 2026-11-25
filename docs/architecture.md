@@ -92,6 +92,9 @@ skylogicmanagement/
       maintenance/
         MaintenancePage.tsx
         maintenance.css
+      inventory/
+        InventoryPage.tsx
+        inventory.css
       operations/
         OperationsPage.tsx
         operations.css
@@ -103,6 +106,7 @@ skylogicmanagement/
     migrations/
       20261125130000_initial_schema.sql
       20261125134500_maintenance_workflows.sql
+      20261125143000_inventory_workflows.sql
   .github/
     workflows/
       deploy-pages.yml
@@ -115,6 +119,7 @@ src/
   components/
   features/
     assets/
+    inventory/
     maintenance/
     operations/
   lib/

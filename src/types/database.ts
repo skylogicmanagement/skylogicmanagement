@@ -260,6 +260,94 @@ export interface Database {
           notes?: string | null
         }
       >
+      inventory_items: Table<
+        {
+          id: string
+          org_id: string
+          internal_code: string
+          name: string
+          category: string
+          manufacturer_reference: string | null
+          unit: string
+          quantity_on_hand: number
+          location_id: string | null
+          supplier_id: string | null
+          unit_value: number | null
+          active: boolean
+          notes: string | null
+          is_serialized: boolean
+          serial_number: string | null
+          manufacturer: string | null
+          model: string | null
+          acquired_on: string | null
+          created_by: string
+          created_at: string
+        },
+        {
+          org_id: string
+          internal_code: string
+          name: string
+          category: string
+          unit: string
+          quantity_on_hand?: number
+          location_id?: string | null
+          supplier_id?: string | null
+          unit_value?: number | null
+          active?: boolean
+          notes?: string | null
+          is_serialized?: boolean
+          serial_number?: string | null
+          manufacturer?: string | null
+          model?: string | null
+          acquired_on?: string | null
+        }
+      >
+      inventory_movements: Table<
+        {
+          id: string
+          org_id: string
+          item_id: string
+          movement_type: string
+          quantity_delta: number
+          maintenance_record_id: string | null
+          asset_id: string | null
+          related_movement_id: string | null
+          source_location_id: string | null
+          target_location_id: string | null
+          reason: string | null
+          created_by: string
+          created_at: string
+        },
+        {
+          org_id: string
+          item_id: string
+          movement_type: string
+          quantity_delta: number
+          maintenance_record_id?: string | null
+          asset_id?: string | null
+          related_movement_id?: string | null
+          source_location_id?: string | null
+          target_location_id?: string | null
+          reason?: string | null
+        }
+      >
+      inventory_location_balances: Table<
+        {
+          id: string
+          org_id: string
+          item_id: string
+          location_id: string | null
+          balance_key: string
+          quantity_on_hand: number
+          updated_at: string
+        },
+        {
+          org_id: string
+          item_id: string
+          location_id?: string | null
+          quantity_on_hand?: number
+        }
+      >
     }
     Views: Record<string, never>
     Functions: {
@@ -328,6 +416,41 @@ export interface Database {
           p_cost?: number | null
           p_completed_at?: string
           p_next_intervention_at?: string | null
+        }
+        Returns: string
+      }
+      create_inventory_item: {
+        Args: {
+          p_org_id: string
+          p_internal_code: string
+          p_name: string
+          p_category: string
+          p_unit: string
+          p_opening_quantity: number
+          p_location_id: string | null
+          p_is_serialized: boolean
+          p_serial_number: string | null
+          p_manufacturer: string | null
+          p_model: string | null
+          p_manufacturer_reference: string | null
+          p_acquired_on: string | null
+          p_supplier_id: string | null
+          p_unit_value: number | null
+          p_notes: string | null
+        }
+        Returns: string
+      }
+      record_inventory_movement: {
+        Args: {
+          p_org_id: string
+          p_item_id: string
+          p_movement_type: string
+          p_quantity: number
+          p_reason: string | null
+          p_source_location_id?: string | null
+          p_target_location_id?: string | null
+          p_asset_id?: string | null
+          p_maintenance_record_id?: string | null
         }
         Returns: string
       }

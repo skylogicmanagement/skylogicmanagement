@@ -31,6 +31,7 @@ import type { Session } from '@supabase/supabase-js'
 import { AssetsPage } from './features/assets/AssetsPage'
 import { OperationsPage } from './features/operations/OperationsPage'
 import { MaintenancePage } from './features/maintenance/MaintenancePage'
+import { InventoryPage } from './features/inventory/InventoryPage'
 import { supabase, supabaseConfigError } from './lib/supabase'
 
 const FlightChart = lazy(() => import('./components/FlightChart'))
@@ -481,6 +482,8 @@ function Workspace({ session }: { session: Session }) {
             <OperationsPage userId={session.user.id} />
           ) : page === 'Mantenimiento' ? (
             <MaintenancePage />
+          ) : page === 'Inventario' ? (
+            <InventoryPage />
           ) : (
             <ModulePlaceholder page={page} onBack={() => setPage('Resumen')} />
           )}
