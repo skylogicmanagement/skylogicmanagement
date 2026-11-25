@@ -20,6 +20,7 @@ import {
   Menu,
   Moon,
   PackageCheck,
+  Pencil,
   Plane,
   Settings2,
   ShieldCheck,
@@ -262,11 +263,88 @@ function Workspace({ session }: { session: Session }) {
   const [recentOperations, setRecentOperations] = useState<RecentOperation[]>([])
   const [statusNames, setStatusNames] = useState<Record<string, string>>({})
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [profileEditorOpen, setProfileEditorOpen] = useState(false)
+  const [profileName, setProfileName] = useState(typeof session.user.user_metadata.display_name === 'string' ? session.user.user_metadata.display_name : '')
+  const [profilePhone, setProfilePhone] = useState('')
+  const [profileOrgId, setProfileOrgId] = useState('')
+  const [profileError, setProfileError] = useState('')
+  const [profileNotice, setProfileNotice] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [refreshToken, setRefreshToken] = useState(0)
   const reduceMotion = useReducedMotion()
   const userEmail = session.user.email ?? 'Usuario'
-  const initials = useMemo(() => userEmail.slice(0, 1).toUpperCase(), [userEmail])
+  const profileDisplayName = profileName.trim() || userEmail.split('@')[0] || 'Usuario'
+  const initials = useMemo(() => profileDisplayName.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase(), [profileDisplayName])
+
+  useEffect(() => {
+    let active = true
+    async function loadProfile() {
+      if (!supabase) return
+      const { data: membership, error: membershipError } = await supabase
+        .from('memberships')
+        .select('org_id')
+        .eq('user_id', session.user.id)
+        .eq('active', true)
+        .limit(1)
+        .maybeSingle()
+      if (!active) return
+      if (membershipError) {
+        setProfileError(membershipError.message)
+        return
+      }
+      if (!membership) return
+      setProfileOrgId(membership.org_id)
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('display_name, phone')
+        .eq('org_id', membership.org_id)
+        .eq('user_id', session.user.id)
+        .maybeSingle()
+      if (!active) return
+      if (error) {
+        setProfileError(error.message)
+        return
+      }
+      if (data) {
+        setProfileName(data.display_name)
+        setProfilePhone(data.phone ?? '')
+      }
+    }
+    void loadProfile()
+    return () => { active = false }
+  }, [session.user.id])
+
+  async function saveProfile(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!supabase || !profileOrgId) {
+      setProfileError('No se encontró una membresía activa para guardar tu perfil.')
+      return
+    }
+    const displayName = profileName.trim()
+    if (!displayName) {
+      setProfileError('Escribe el nombre que quieres mostrar.')
+      return
+    }
+    setSavingProfile(true)
+    setProfileError('')
+    setProfileNotice('')
+    const { error } = await supabase.from('user_profiles').upsert({
+      org_id: profileOrgId,
+      user_id: session.user.id,
+      display_name: displayName,
+      phone: profilePhone.trim() || null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'org_id,user_id' })
+    if (error) {
+      setProfileError(error.message)
+    } else {
+      setProfileName(displayName)
+      setProfileNotice('Nombre del perfil actualizado.')
+      setProfileEditorOpen(false)
+    }
+    setSavingProfile(false)
+  }
 
   useEffect(() => {
     let active = true
@@ -448,10 +526,15 @@ function Workspace({ session }: { session: Session }) {
           </button>
           <button className="profile-button" onClick={() => setUserMenuOpen((open) => !open)}>
             <span className="avatar">{initials}</span>
-            <span className="profile-info"><strong>{userEmail}</strong><small>Cuenta autorizada</small></span>
+            <span className="profile-info"><strong>{profileDisplayName}</strong><small>{userEmail}</small></span>
             <ChevronDown size={15} />
           </button>
-          {userMenuOpen && <button className="signout-button" onClick={() => void signOut()}><LogOut size={15} /> Cerrar sesión</button>}
+          {userMenuOpen && (
+            <div className="profile-actions-menu">
+              <button type="button" onClick={() => { setProfileError(''); setProfileNotice(''); setProfileEditorOpen(true); setUserMenuOpen(false) }}><Pencil size={15} /> Editar mi nombre</button>
+              <button type="button" className="profile-action-signout" onClick={() => void signOut()}><LogOut size={15} /> Cerrar sesión</button>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -511,7 +594,73 @@ function Workspace({ session }: { session: Session }) {
         </main>
       </div>
       <HelpCenter open={helpOpen} onClose={() => setHelpOpen(false)} onNavigate={(targetPage) => { setPage(targetPage); setHelpOpen(false); setMenuOpen(false) }} />
+      <ProfileEditor
+        open={profileEditorOpen}
+        name={profileName}
+        phone={profilePhone}
+        error={profileError}
+        notice={profileNotice}
+        saving={savingProfile}
+        onNameChange={setProfileName}
+        onPhoneChange={setProfilePhone}
+        onSave={saveProfile}
+        onClose={() => setProfileEditorOpen(false)}
+      />
     </div>
+  )
+}
+
+function ProfileEditor({
+  open,
+  name,
+  phone,
+  error,
+  notice,
+  saving,
+  onNameChange,
+  onPhoneChange,
+  onSave,
+  onClose,
+}: {
+  open: boolean
+  name: string
+  phone: string
+  error: string
+  notice: string
+  saving: boolean
+  onNameChange: (value: string) => void
+  onPhoneChange: (value: string) => void
+  onSave: (event: React.FormEvent<HTMLFormElement>) => void
+  onClose: () => void
+}) {
+  useEffect(() => {
+    if (!open) return
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose, open])
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div className="profile-editor-backdrop" role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget && !saving) onClose()
+        }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <motion.section className="profile-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="profile-editor-title" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}>
+            <header><div><h2 id="profile-editor-title">Mi perfil</h2><p>El nombre se mostrará en la aplicación y en la auditoría.</p></div><button className="icon-button" type="button" aria-label="Cerrar perfil" onClick={onClose}><X size={18} /></button></header>
+            <form onSubmit={onSave}>
+              <label>Nombre visible<input autoFocus required maxLength={120} value={name} onChange={(event) => onNameChange(event.target.value)} placeholder="Ej. María Gómez" /></label>
+              <label>Teléfono <span>(opcional)</span><input type="tel" maxLength={40} value={phone} onChange={(event) => onPhoneChange(event.target.value)} placeholder="+57 ..." /></label>
+              {error && <p className="inline-error" role="alert">{error}</p>}
+              {notice && <p className="inline-success" role="status">{notice}</p>}
+              <footer><button className="secondary-button" type="button" onClick={onClose} disabled={saving}>Cancelar</button><button className="primary-button" type="submit" disabled={saving}>{saving ? 'Guardando…' : 'Guardar perfil'}</button></footer>
+            </form>
+          </motion.section>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }
 

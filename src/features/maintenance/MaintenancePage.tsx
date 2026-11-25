@@ -251,7 +251,7 @@ export function MaintenancePage() {
     const profileNames = new Map((profilesResult.data ?? []).map((profile) => [profile.user_id, profile.display_name]))
     setMembers((membershipsResult.data ?? []).map(({ user_id }) => ({
       user_id,
-      display_name: profileNames.get(user_id) ?? `Usuario ${user_id.slice(0, 8)}`,
+      display_name: profileNames.get(user_id) ?? 'Usuario sin nombre registrado',
     })))
     setAssetStatuses(assetStatusesResult.data ?? [])
     setCanManage(managePermission.data === true)

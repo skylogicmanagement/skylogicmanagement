@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Check, MailPlus, RefreshCw, Shield, ShieldCheck, UserRound, Users, X } from 'lucide-react'
+import { AlertTriangle, Check, MailPlus, Pencil, RefreshCw, Shield, ShieldCheck, UserRound, Users, X } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { supabase } from '../../lib/supabase'
 import './users.css'
@@ -39,6 +39,8 @@ export function UsersPage({ userId }: { userId: string }) {
   const [saving, setSaving] = useState(false)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [invite, setInvite] = useState(emptyInvite)
+  const [profileMember, setProfileMember] = useState<Member | null>(null)
+  const [profileDraft, setProfileDraft] = useState({ name: '', phone: '' })
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
@@ -142,6 +144,7 @@ export function UsersPage({ userId }: { userId: string }) {
     const channel = client.channel(`users-${orgId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'memberships', filter: `org_id=eq.${orgId}` }, () => void loadData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'roles', filter: `org_id=eq.${orgId}` }, () => void loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_profiles', filter: `org_id=eq.${orgId}` }, () => void loadData())
       .subscribe((status, subscriptionError) => {
         if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && subscriptionError) {
           setError(subscriptionError.message)
@@ -240,6 +243,34 @@ export function UsersPage({ userId }: { userId: string }) {
     setSaving(false)
   }
 
+  async function saveMemberProfile(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!supabase || !orgId || !profileMember) return
+    const displayName = profileDraft.name.trim()
+    if (!displayName) {
+      setError('El nombre visible es obligatorio.')
+      return
+    }
+    setSaving(true)
+    setError('')
+    setNotice('')
+    const { error: profileError } = await supabase.from('user_profiles').upsert({
+      org_id: orgId,
+      user_id: profileMember.user_id,
+      display_name: displayName,
+      phone: profileDraft.phone.trim() || null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'org_id,user_id' })
+    if (profileError) {
+      setError(profileError.message)
+    } else {
+      setNotice(`Perfil actualizado para ${displayName}.`)
+      setProfileMember(null)
+      await loadData()
+    }
+    setSaving(false)
+  }
+
   return (
     <motion.section className="users-page" initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
       {!canManage && !loading && !error ? (
@@ -278,7 +309,11 @@ export function UsersPage({ userId }: { userId: string }) {
                   return (
                     <article className={`user-row${member.active ? '' : ' user-row-inactive'}`} key={member.id}>
                       <span className="user-avatar"><UserRound size={18} /></span>
-                      <div className="user-identity"><strong>{member.name}{isSelf && <small className="user-self-badge">Tu cuenta</small>}</strong><span>{member.email}</span>{member.phone && <small>{member.phone}</small>}</div>
+                      <div className="user-identity">
+                        <strong>{member.name}{isSelf && <small className="user-self-badge">Tu cuenta</small>}</strong>
+                        <span>{member.email}</span>{member.phone && <small>{member.phone}</small>}
+                        {canManage && <button className="user-edit-profile" type="button" onClick={() => { setError(''); setNotice(''); setProfileDraft({ name: member.name === 'Usuario sin nombre' ? '' : member.name, phone: member.phone }); setProfileMember(member) }}><Pencil size={12} /> Editar nombre</button>}
+                      </div>
                       <div className="user-role-control">
                         <label htmlFor={`role-${member.id}`}>Rol</label>
                         <select id={`role-${member.id}`} value={roleId} onChange={(event) => setRoleDrafts((current) => ({ ...current, [member.id]: event.target.value }))} disabled={!canManage || !member.active || isSelf || saving}>
@@ -329,6 +364,22 @@ export function UsersPage({ userId }: { userId: string }) {
                 <label>Rol<select required value={invite.roleId} onChange={(event) => setInvite((current) => ({ ...current, roleId: event.target.value }))}><option value="">Selecciona un rol...</option>{roles.map((role) => <option value={role.id} key={role.id}>{role.name}</option>)}</select></label>
                 <div className="users-invite-note"><Shield size={15} /><span>La persona recibirá un correo y podrá iniciar sesión después de aceptar la invitación.</span></div>
                 <footer><button className="secondary-button" type="button" onClick={() => setInviteOpen(false)} disabled={saving}>Cancelar</button><button className="primary-button" type="submit" disabled={saving || !invite.roleId}><MailPlus size={15} />{saving ? 'Enviando…' : 'Enviar invitación'}</button></footer>
+              </form>
+            </motion.section>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {profileMember && (
+          <motion.div className="users-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) setProfileMember(null) }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.section className="users-invite-modal" role="dialog" aria-modal="true" aria-labelledby="edit-member-profile-title" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}>
+              <header><div><h2 id="edit-member-profile-title">Nombre del usuario</h2><p>Este nombre se verá en operaciones, asignaciones y auditoría.</p></div><button className="icon-button" type="button" aria-label="Cerrar formulario" onClick={() => setProfileMember(null)}><X size={18} /></button></header>
+              <form onSubmit={(event) => void saveMemberProfile(event)}>
+                {error && <div className="inline-error" role="alert"><AlertTriangle size={17} />{error}</div>}
+                <label>Nombre visible<input required autoFocus maxLength={120} value={profileDraft.name} onChange={(event) => setProfileDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Ej. María Gómez" /></label>
+                <label>Teléfono <span>(opcional)</span><input type="tel" maxLength={40} value={profileDraft.phone} onChange={(event) => setProfileDraft((current) => ({ ...current, phone: event.target.value }))} /></label>
+                <footer><button className="secondary-button" type="button" onClick={() => setProfileMember(null)} disabled={saving}>Cancelar</button><button className="primary-button" type="submit" disabled={saving}>{saving ? 'Guardando…' : 'Guardar nombre'}</button></footer>
               </form>
             </motion.section>
           </motion.div>

@@ -167,6 +167,26 @@
   font-weight: 600;
 }
 
+.user-edit-profile {
+  display: inline-flex;
+  justify-self: start;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  font-size: 9px;
+}
+
+.user-edit-profile:hover,
+.user-edit-profile:focus-visible {
+  color: var(--text);
+  outline: none;
+}
+
 .user-role-control {
   display: grid;
   width: min(190px, 20%);

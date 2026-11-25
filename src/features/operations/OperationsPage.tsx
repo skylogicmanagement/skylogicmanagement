@@ -186,7 +186,7 @@ export function OperationsPage({ userId }: { userId: string }) {
     const profileById = new Map((profilesResult.data ?? []).map((profile) => [profile.user_id, profile.display_name]))
     const activeMembers = (membershipsResult.data ?? []).map(({ user_id }) => ({
       user_id,
-      display_name: profileById.get(user_id) ?? `Usuario ${user_id.slice(0, 8)}`,
+      display_name: profileById.get(user_id) ?? 'Usuario sin nombre registrado',
     }))
     const operationRows = operationsResult.data ?? []
     const operationIds = operationRows.map(({ id }) => id)

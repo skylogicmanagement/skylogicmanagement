@@ -277,7 +277,7 @@ export function AuditPage({ userId }: { userId: string }) {
               <div className="audit-timeline">
                 {events.map((event) => {
                   const fields = changedFields(event)
-                  const actor = event.actor_user_id ? actorNames[event.actor_user_id] ?? `Usuario ${event.actor_user_id.slice(0, 8)}` : 'Sistema / proceso administrativo'
+                  const actor = event.actor_user_id ? actorNames[event.actor_user_id] ?? 'Usuario sin nombre registrado' : 'Sistema / proceso administrativo'
                   return (
                     <article className="audit-event" key={event.id}>
                       <span className={`audit-event-marker audit-event-${event.event_type}`} />
