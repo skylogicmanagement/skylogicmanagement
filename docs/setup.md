@@ -23,6 +23,7 @@
    - `supabase/migrations/20261125162000_inventory_minimum_stock.sql`
    - `supabase/migrations/20261125163000_private_document_attachments.sql`
    - `supabase/migrations/20261125164000_reporting_access.sql`
+   - `supabase/migrations/20261125165000_maintenance_reporting_access.sql`
    La migración de alertas usa `create or replace` y se puede volver a ejecutar para
    actualizar la función si se corrige. Si ya la ejecutaste y las alertas muestran un
    error de columna ambigua, vuelve a ejecutar únicamente
@@ -52,6 +53,9 @@
    `20261125164000_reporting_access.sql`, una sola vez. Permite que el permiso
    `reports.read` consulte los datos necesarios para los informes sin otorgar permisos
    para crear o modificar registros.
+   Si ya ejecutaste las anteriores, aplica únicamente
+   `20261125165000_maintenance_reporting_access.sql`, una sola vez. Habilita la consulta
+   de intervenciones y tipos de mantenimiento al permiso `reports.read`.
 4. Invita a la primera cuenta desde Authentication. No habilites el registro público.
 5. Obtén el UUID de esa cuenta en Authentication y ejecuta, reemplazando el texto
    marcador:
@@ -103,7 +107,8 @@ Los adjuntos son privados, aceptan JPG, PNG, WebP y PDF de hasta 25 MB, y se con
 mediante enlaces temporales autenticados desde la ficha del activo, el historial de
 mantenimiento o el artículo de inventario.
 El módulo Reportes ofrece el detalle de horas de vuelo por fechas, dron y finca y descarga
-un CSV; requiere `reports.read`.
+un CSV; también resume mantenimientos por fecha, estado, costo, activo y técnico. Requiere
+`reports.read`.
 
 ## Instalacion local
 

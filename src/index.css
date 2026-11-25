@@ -67,11 +67,38 @@ button {
   inset: 0 auto 0 0;
   display: flex;
   width: 254px;
+  height: 100vh;
+  height: 100dvh;
   flex-direction: column;
   padding: 18px 15px 13px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   border-right: 1px solid rgba(152, 174, 211, 0.1);
   background: #0b1425;
   color: #dce5f4;
+}
+
+.sidebar-brand,
+.workspace-switcher,
+.nav-groups,
+.sidebar-bottom {
+  flex: 0 0 auto;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  border-radius: 6px;
+  background: rgba(145, 160, 184, 0.35);
+}
+
+.sidebar {
+  scrollbar-color: rgba(145, 160, 184, 0.35) transparent;
+  scrollbar-width: thin;
 }
 
 .sidebar-brand {
