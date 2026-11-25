@@ -322,6 +322,7 @@ export interface Database {
           manufacturer_reference: string | null
           unit: string
           quantity_on_hand: number
+          minimum_quantity: number
           location_id: string | null
           supplier_id: string | null
           unit_value: number | null
@@ -341,6 +342,7 @@ export interface Database {
           name: string
           category: string
           unit: string
+          minimum_quantity?: number
           quantity_on_hand?: number
           location_id?: string | null
           supplier_id?: string | null

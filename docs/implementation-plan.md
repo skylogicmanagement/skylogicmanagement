@@ -83,8 +83,9 @@ reales de Supabase.
 
 Estado: catálogo de artículos, seriales únicos, saldos por ubicación, entradas,
 consumos, instalaciones, traslados y bajas implementados con funciones transaccionales.
-Los consumos de mantenimiento quedan vinculados a su intervención y activo. Faltan
-alertas por mínimos, adjuntos y pruebas con datos reales de Supabase.
+Los consumos de mantenimiento quedan vinculados a su intervención y activo. Los mínimos
+configurables por artículo y las alertas de existencia agotada o bajo el umbral también
+están implementados. Faltan adjuntos y pruebas con datos reales de Supabase.
 
 ## Fase 8: Auditoria
 

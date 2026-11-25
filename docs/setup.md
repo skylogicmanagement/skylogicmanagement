@@ -20,6 +20,7 @@
    - `supabase/migrations/20261125154500_maintenance_alerts.sql`
    - `supabase/migrations/20261125160000_asset_assignment_workflows.sql`
    - `supabase/migrations/20261125161000_pilot_management.sql`
+   - `supabase/migrations/20261125162000_inventory_minimum_stock.sql`
    La migración de alertas usa `create or replace` y se puede volver a ejecutar para
    actualizar la función si se corrige. Si ya la ejecutaste y las alertas muestran un
    error de columna ambigua, vuelve a ejecutar únicamente
@@ -37,6 +38,10 @@
    `20261125160000_asset_assignment_workflows.sql` y después la migración de pilotos,
    cada una una sola vez. La nueva migración crea el catálogo privado de pilotos y
    registra un piloto por cada dron de la operación; no crea cuentas de Supabase Auth.
+   Si ya aplicaste las migraciones anteriores, ejecuta únicamente
+   `20261125162000_inventory_minimum_stock.sql`, una sola vez. Agrega el mínimo
+   configurable por artículo y habilita su edición sin permitir cambiar existencias fuera
+   de los movimientos registrados.
 4. Invita a la primera cuenta desde Authentication. No habilites el registro público.
 5. Obtén el UUID de esa cuenta en Authentication y ejecuta, reemplazando el texto
    marcador:
@@ -79,8 +84,10 @@ crear artículos y registrar movimientos. La migración de fichas permite editar
 datos generales y técnicos permitidos desde la aplicación. La integración con
 mantenimiento permite consultar cantidades disponibles y descontar repuestos al cerrar
 una intervención. La migración de alertas calcula vencimientos por horas y calendario
-con umbrales de proximidad de 10% del intervalo o 7 días. No ingreses datos reales
-hasta confirmar que las migraciones aplicables terminaron correctamente.
+con umbrales de proximidad de 10% del intervalo o 7 días. El mínimo de inventario se
+configura por artículo; cuando la existencia total es igual o inferior a ese mínimo,
+aparece una alerta en Inventario. El valor cero desactiva la alerta. No ingreses datos
+reales hasta confirmar que las migraciones aplicables terminaron correctamente.
 
 ## Instalacion local
 

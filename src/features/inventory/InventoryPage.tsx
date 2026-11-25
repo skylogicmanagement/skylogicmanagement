@@ -24,6 +24,7 @@ type InventoryItem = {
   manufacturer_reference: string | null
   unit: string
   quantity_on_hand: number
+  minimum_quantity: number
   location_id: string | null
   supplier_id: string | null
   unit_value: number | null
@@ -170,6 +171,7 @@ export function InventoryPage() {
   const [query, setQuery] = useState('')
   const [itemModalOpen, setItemModalOpen] = useState(false)
   const [movementModalOpen, setMovementModalOpen] = useState(false)
+  const [savingMinimumId, setSavingMinimumId] = useState('')
   const [itemDraft, setItemDraft] = useState<ItemDraft>(emptyItemDraft)
   const [movementDraft, setMovementDraft] = useState<MovementDraft>(emptyMovementDraft)
 
@@ -223,7 +225,7 @@ export function InventoryPage() {
       maintenanceResult,
     ] = await Promise.all([
       supabase.from('inventory_items')
-        .select('id, internal_code, name, category, manufacturer_reference, unit, quantity_on_hand, location_id, supplier_id, unit_value, active, notes, is_serialized, serial_number, manufacturer, model, acquired_on')
+        .select('id, internal_code, name, category, manufacturer_reference, unit, quantity_on_hand, minimum_quantity, location_id, supplier_id, unit_value, active, notes, is_serialized, serial_number, manufacturer, model, acquired_on')
         .eq('org_id', currentOrgId)
         .eq('active', true)
         .order('internal_code'),
@@ -327,7 +329,10 @@ export function InventoryPage() {
   const itemsWithStock = items.filter((item) => Number(item.quantity_on_hand) > 0).length
   const totalValue = items.reduce((sum, item) => sum + Number(item.quantity_on_hand) * Number(item.unit_value ?? 0), 0)
   const serializedCount = items.filter((item) => item.is_serialized).length
-  const emptyCount = items.filter((item) => Number(item.quantity_on_hand) === 0).length
+  const lowStockItems = items.filter((item) =>
+    Number(item.minimum_quantity) > 0
+      && Number(item.quantity_on_hand) <= Number(item.minimum_quantity),
+  )
 
   function openMovementForm(itemId = '') {
     setMovementDraft({ ...emptyMovementDraft, item_id: itemId })
@@ -399,6 +404,40 @@ export function InventoryPage() {
     setSaving(false)
   }
 
+  async function updateMinimumQuantity(item: InventoryItem, rawValue: string) {
+    if (!supabase || !orgId) return false
+    const minimumQuantity = Number(rawValue)
+    if (!Number.isFinite(minimumQuantity) || minimumQuantity < 0) {
+      setError('El nivel mínimo debe ser un número mayor o igual a cero.')
+      return false
+    }
+    setSavingMinimumId(item.id)
+    setError('')
+    setNotice('')
+    const { data, error: updateError } = await supabase.from('inventory_items')
+      .update({ minimum_quantity: minimumQuantity })
+      .eq('id', item.id)
+      .eq('org_id', orgId)
+      .select('id')
+      .maybeSingle()
+    if (updateError) {
+      setError(updateError.message)
+      setSavingMinimumId('')
+      return false
+    }
+    if (!data) {
+      setError('No fue posible guardar el nivel mínimo. Verifica tus permisos.')
+      setSavingMinimumId('')
+      return false
+    }
+    setItems((current) => current.map((candidate) => candidate.id === item.id
+      ? { ...candidate, minimum_quantity: minimumQuantity }
+      : candidate))
+    setNotice(`Nivel mínimo de ${item.name} actualizado.`)
+    setSavingMinimumId('')
+    return true
+  }
+
   return (
     <motion.section className="inventory-page" initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
       <div className="inventory-toolbar">
@@ -426,8 +465,27 @@ export function InventoryPage() {
         <article><span className="inventory-stat-icon inventory-stat-blue"><Package size={18} /></span><div><strong>{items.length}</strong><small>Artículos activos</small></div></article>
         <article><span className="inventory-stat-icon inventory-stat-green"><ArrowDownLeft size={18} /></span><div><strong>{itemsWithStock}</strong><small>Artículos con existencia</small></div></article>
         <article><span className="inventory-stat-icon inventory-stat-amber"><CircleDollarSign size={18} /></span><div><strong>{formatCurrency(totalValue)}</strong><small>Valor estimado del stock</small></div></article>
-        <article><span className="inventory-stat-icon inventory-stat-purple"><AlertTriangle size={18} /></span><div><strong>{emptyCount}</strong><small>Sin existencias</small></div></article>
+        <article><span className="inventory-stat-icon inventory-stat-purple"><AlertTriangle size={18} /></span><div><strong>{lowStockItems.length}</strong><small>Alertas de stock mínimo</small></div></article>
       </div>
+
+      {lowStockItems.length > 0 && (
+        <section className="inventory-section inventory-alert-section" aria-labelledby="inventory-alert-title">
+          <div className="inventory-section-heading">
+            <div><h2 id="inventory-alert-title">Alertas de stock mínimo</h2><p>Artículos que alcanzaron o están por debajo del umbral configurado.</p></div>
+            <span>{lowStockItems.length} alertas</span>
+          </div>
+          <div className="inventory-alert-list">
+            {lowStockItems.map((item) => (
+              <article className={`inventory-alert-row${Number(item.quantity_on_hand) === 0 ? ' inventory-alert-empty' : ''}`} key={item.id}>
+                <span className="inventory-alert-mark"><AlertTriangle size={16} /></span>
+                <div><strong>{item.name}</strong><small>{item.internal_code} · {Number(item.quantity_on_hand) === 0 ? 'Agotado' : 'Existencia en nivel mínimo'}</small></div>
+                <span className="inventory-alert-quantity">{formatQuantity(Number(item.quantity_on_hand), item.unit)} <small>de mínimo {formatQuantity(Number(item.minimum_quantity), item.unit)}</small></span>
+                {canManage && <button className="inventory-item-move" type="button" onClick={() => openMovementForm(item.id)}><ArrowLeftRight size={15} /> Reponer</button>}
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="inventory-section">
         <div className="inventory-section-heading">
@@ -452,12 +510,21 @@ export function InventoryPage() {
                   <div className="inventory-item-details">
                     {item.serial_number && <span><small>N.º de serie</small><strong>{item.serial_number}</strong></span>}
                     <span><small>Existencia</small><strong>{formatQuantity(Number(item.quantity_on_hand), item.unit)}</strong></span>
+                    <span><small>Nivel mínimo</small><strong>{Number(item.minimum_quantity) > 0 ? formatQuantity(Number(item.minimum_quantity), item.unit) : 'Sin configurar'}</strong></span>
                     <span><small>Ubicación(es)</small><strong>{locationSummary}</strong></span>
                     <span><small>Fabricante / modelo</small><strong>{[item.manufacturer, item.model, item.manufacturer_reference].filter(Boolean).join(' · ') || '—'}</strong></span>
                     <span><small>Proveedor</small><strong>{supplierNames.get(item.supplier_id ?? '') ?? '—'}</strong></span>
                     <span><small>Valor unitario</small><strong>{formatCurrency(item.unit_value)}</strong></span>
                   </div>
-                  {canManage && <button className="inventory-item-move" type="button" onClick={() => openMovementForm(item.id)} aria-label={`Registrar movimiento de ${item.name}`}><ArrowLeftRight size={16} /><span>Movimiento</span></button>}
+                  {canManage && <div className="inventory-item-actions">
+                    <MinimumQuantityEditor
+                      key={`${item.id}-${item.minimum_quantity}`}
+                      value={Number(item.minimum_quantity)}
+                      saving={savingMinimumId === item.id}
+                      onSave={(value) => updateMinimumQuantity(item, value)}
+                    />
+                    <button className="inventory-item-move" type="button" onClick={() => openMovementForm(item.id)} aria-label={`Registrar movimiento de ${item.name}`}><ArrowLeftRight size={16} /><span>Movimiento</span></button>
+                  </div>}
                 </article>
               )
             })}
@@ -548,5 +615,42 @@ export function InventoryPage() {
         )}
       </AnimatePresence>
     </motion.section>
+  )
+}
+
+function MinimumQuantityEditor({
+  value,
+  saving,
+  onSave,
+}: {
+  value: number
+  saving: boolean
+  onSave: (value: string) => Promise<boolean>
+}) {
+  const [draft, setDraft] = useState(String(value))
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    await onSave(draft)
+  }
+
+  return (
+    <form className="inventory-minimum-editor" onSubmit={submit}>
+      <label>
+        Mínimo
+        <input
+          aria-label="Nivel mínimo de existencias"
+          type="number"
+          min="0"
+          step="0.001"
+          required
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+        />
+      </label>
+      <button className="secondary-button" type="submit" disabled={saving || draft === String(value)}>
+        {saving ? 'Guardando…' : 'Guardar'}
+      </button>
+    </form>
   )
 }
