@@ -1017,6 +1017,59 @@ button {
   gap: 14px;
 }
 
+.asset-category-nav {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 1px 5px;
+  scrollbar-width: thin;
+}
+
+.asset-category-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 37px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.asset-category-button:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.asset-category-button span {
+  display: grid;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--surface-raised);
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.asset-category-button.asset-category-active {
+  border-color: rgba(39, 145, 255, 0.42);
+  background: rgba(39, 145, 255, 0.12);
+  color: #54a8ff;
+}
+
+.asset-category-button.asset-category-active span {
+  background: rgba(39, 145, 255, 0.18);
+  color: #79baff;
+}
+
 .assets-toolbar {
   display: flex;
   align-items: center;

@@ -40,7 +40,8 @@ operativos aparecen al configurar Supabase.
 Estado: migración base preparada; registro y búsqueda inicial de activos ya conectados a
 la interfaz. Edición transaccional de fichas con serial, adquisición, proveedor,
 ubicación, responsable, observaciones y datos técnicos de baterías implementada.
-Faltan fichas históricas completas, adjuntos y flujos de asignación manual.
+La lista se organiza por categorías dinámicas con conteos y búsqueda por tipo. Faltan
+fichas históricas completas, adjuntos y flujos de asignación manual.
 
 ## Fase 5: Operaciones
 

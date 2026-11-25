@@ -89,6 +89,7 @@ export function AssetsPage({ userId }: { userId: string }) {
   const [formError, setFormError] = useState('')
   const [notice, setNotice] = useState('')
   const [query, setQuery] = useState('')
+  const [selectedType, setSelectedType] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [editingAsset, setEditingAsset] = useState<AssetRow | null>(null)
   const [saving, setSaving] = useState(false)
@@ -201,7 +202,7 @@ export function AssetsPage({ userId }: { userId: string }) {
     return () => window.clearTimeout(task)
   }, [loadData])
 
-  const filteredAssets = useMemo(() => {
+  const matchingAssets = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase()
     if (!normalizedQuery) return assets
     return assets.filter((asset) =>
@@ -209,6 +210,17 @@ export function AssetsPage({ userId }: { userId: string }) {
         .some((value) => value?.toLocaleLowerCase().includes(normalizedQuery)),
     )
   }, [assets, query])
+  const assetTypeOptions = useMemo(() => {
+    const knownTypes = new Set(types.map((type) => type.code))
+    const missingTypes = [...new Set(assets.map((asset) => asset.asset_type_code))]
+      .filter((code) => !knownTypes.has(code))
+      .map((code) => ({ code, name: code.replaceAll('_', ' ') }))
+    return [...types, ...missingTypes]
+  }, [assets, types])
+  const activeType = selectedType || assetTypeOptions.find((type) => type.code === 'drone')?.code || assetTypeOptions[0]?.code || 'all'
+  const filteredAssets = activeType === 'all'
+    ? matchingAssets
+    : matchingAssets.filter((asset) => asset.asset_type_code === activeType)
 
   async function handleCreate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -342,12 +354,37 @@ export function AssetsPage({ userId }: { userId: string }) {
             <input aria-label="Buscar activos" placeholder="Buscar por nombre, código o serial" value={query} onChange={(event) => setQuery(event.target.value)} />
           </label>
           <button className="assets-refresh" type="button" aria-label="Actualizar lista" onClick={() => { setLoading(true); setLoadError(''); void loadData() }} disabled={loading}><RefreshCw size={16} /></button>
-          {canManage && <button className="primary-button" type="button" onClick={() => { setFormError(''); setFormOpen(true) }}><Plus size={16} /> Registrar activo</button>}
+          {canManage && <button className="primary-button" type="button" onClick={() => { setFormError(''); setDraft((current) => ({ ...current, asset_type_code: activeType === 'all' ? '' : activeType })); setFormOpen(true) }}><Plus size={16} /> Registrar activo</button>}
         </div>
       </div>
 
       {loadError && <div className="inline-error" role="alert"><AlertTriangle size={17} />{loadError}</div>}
       {notice && <div className="inline-success" role="status">{notice}</div>}
+
+      <nav className="asset-category-nav" aria-label="Filtrar activos por categoría">
+        <button
+          className={`asset-category-button${activeType === 'all' ? ' asset-category-active' : ''}`}
+          type="button"
+          aria-pressed={activeType === 'all'}
+          onClick={() => setSelectedType('all')}
+        >
+          Todos los activos <span>{matchingAssets.length}</span>
+        </button>
+        {assetTypeOptions.map((type) => {
+          const count = matchingAssets.filter((asset) => asset.asset_type_code === type.code).length
+          return (
+            <button
+              className={`asset-category-button${activeType === type.code ? ' asset-category-active' : ''}`}
+              type="button"
+              aria-pressed={activeType === type.code}
+              key={type.code}
+              onClick={() => setSelectedType(type.code)}
+            >
+              {type.name} <span>{count}</span>
+            </button>
+          )
+        })}
+      </nav>
 
       {formOpen && (
         <div className="asset-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setFormOpen(false) }}>
@@ -428,7 +465,7 @@ export function AssetsPage({ userId }: { userId: string }) {
       </AnimatePresence>
 
       <div className="assets-panel">
-        <div className="assets-panel-heading"><div><h2>Inventario de activos</h2><p>Registros de la organización con estado y número de serie</p></div><span className="assets-total">{filteredAssets.length} registros</span></div>
+        <div className="assets-panel-heading"><div><h2>{activeType === 'all' ? 'Todos los activos' : assetTypeOptions.find((type) => type.code === activeType)?.name ?? 'Activos'}</h2><p>{activeType === 'all' ? 'Equipos y componentes registrados en la empresa' : 'Activos de esta categoría'}</p></div><span className="assets-total">{filteredAssets.length} registros</span></div>
         {loading ? (
           <div className="assets-empty"><div className="asset-loading-mark" /><strong>Cargando activos…</strong></div>
         ) : filteredAssets.length ? (
@@ -488,9 +525,9 @@ export function AssetsPage({ userId }: { userId: string }) {
         ) : (
           <div className="assets-empty">
             <div className="assets-empty-icon"><Box size={22} /></div>
-            <strong>{query ? 'No hay resultados para esa búsqueda' : 'No hay activos que mostrar'}</strong>
-            <span>{query ? 'Prueba con otro código, número de serie o nombre.' : 'Los activos aparecerán aquí al registrarlos en Sky Logic.'}</span>
-            {!query && canManage && <button className="text-link" onClick={() => setFormOpen(true)}><Plus size={15} /> Registrar el primer activo</button>}
+            <strong>{query ? 'No hay resultados para esa búsqueda' : 'No hay activos en esta categoría'}</strong>
+            <span>{query ? 'Prueba con otro código, número de serie o nombre.' : 'Selecciona otra categoría o registra un nuevo activo.'}</span>
+            {!query && canManage && <button className="text-link" onClick={() => { setDraft((current) => ({ ...current, asset_type_code: activeType === 'all' ? '' : activeType })); setFormOpen(true) }}><Plus size={15} /> Registrar en esta categoría</button>}
           </div>
         )}
       </div>
