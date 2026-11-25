@@ -141,15 +141,19 @@ externa, diagnostico, actividades, resultado, observaciones, fecha de finalizaci
 proxima intervencion.
 
 `maintenance_plans` guarda intervalos configurables, como 50, 100 o 200 horas.
-Los movimientos de instalación o consumo pueden vincularse a una intervención y un
-activo. El descuento automático de repuestos desde el cierre del mantenimiento sigue
-pendiente.
+Las alertas consultan intervalos por tipo de activo y su última intervención completada.
+Para drones se usan las horas desde el último mantenimiento; para calendario, la fecha
+programada, la última intervención o la adquisición como referencia. Si falta una
+referencia medible, la aplicación lo muestra para evitar presentar una fecha calculada
+como si fuera cierta. Los movimientos de instalación o consumo pueden vincularse a una
+intervención y un activo.
 
 La migración de flujos de mantenimiento expone funciones transaccionales para iniciar y
 cerrar una intervención. Iniciarla cambia el estado del activo a mantenimiento; mientras
 exista una intervención abierta no se puede volver a habilitar ni desactivar el activo.
 El cierre guarda actividades, resultado, costo opcional, siguiente fecha y estado de
-liberación. Los registros cerrados son inmutables para operaciones normales.
+liberación. El uso de repuestos se descuenta en la misma transacción. Los registros
+cerrados son inmutables para operaciones normales.
 
 ### Inventario
 

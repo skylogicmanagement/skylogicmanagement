@@ -451,6 +451,23 @@ export interface Database {
         }
         Returns: string
       }
+      get_maintenance_alerts: {
+        Args: { p_org_id: string }
+        Returns: Array<{
+          asset_id: string
+          asset_name: string
+          internal_code: string
+          asset_type_code: string
+          plan_id: string
+          plan_name: string
+          interval_flight_hours: number | null
+          hours_since_maintenance: number | null
+          hours_remaining: number | null
+          due_date: string | null
+          days_remaining: number | null
+          alert_status: 'overdue' | 'due' | 'upcoming' | 'untracked'
+        }>
+      }
       create_inventory_item: {
         Args: {
           p_org_id: string

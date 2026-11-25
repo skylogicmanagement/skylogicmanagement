@@ -17,6 +17,7 @@
    - `supabase/migrations/20261125143000_inventory_workflows.sql`
    - `supabase/migrations/20261125150000_asset_profile_editing.sql`
    - `supabase/migrations/20261125153000_maintenance_inventory_integration.sql`
+   - `supabase/migrations/20261125154500_maintenance_alerts.sql`
    No vuelvas a ejecutar una migración que ya se aplicó correctamente. La integración
    de repuestos requiere las migraciones de mantenimiento e inventario; si alguna falta,
    aplícala antes de la integración. La migración de edición de fichas puede conservarse
@@ -58,8 +59,9 @@ control individual de seriales, saldos por ubicación y funciones transaccionale
 crear artículos y registrar movimientos. La migración de fichas permite editar los
 datos generales y técnicos permitidos desde la aplicación. La integración con
 mantenimiento permite consultar cantidades disponibles y descontar repuestos al cerrar
-una intervención. No ingreses datos reales hasta confirmar que las migraciones
-aplicables terminaron correctamente.
+una intervención. La migración de alertas calcula vencimientos por horas y calendario
+con umbrales de proximidad de 10% del intervalo o 7 días. No ingreses datos reales
+hasta confirmar que las migraciones aplicables terminaron correctamente.
 
 ## Instalacion local
 

@@ -37,6 +37,7 @@ habilitar el acceso seguro.
 - [Flujos transaccionales de inventario](supabase/migrations/20261125143000_inventory_workflows.sql)
 - [Edición segura de fichas de activos](supabase/migrations/20261125150000_asset_profile_editing.sql)
 - [Integración de repuestos con mantenimiento](supabase/migrations/20261125153000_maintenance_inventory_integration.sql)
+- [Alertas preventivas de mantenimiento](supabase/migrations/20261125154500_maintenance_alerts.sql)
 
 ## Ejecucion local
 

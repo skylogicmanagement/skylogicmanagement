@@ -49,6 +49,20 @@ type MaintenancePartDraft = {
   quantity: string
   movement_type: 'installation' | 'consumption'
 }
+type MaintenanceAlert = {
+  asset_id: string
+  asset_name: string
+  internal_code: string
+  asset_type_code: string
+  plan_id: string
+  plan_name: string
+  interval_flight_hours: number | null
+  hours_since_maintenance: number | null
+  hours_remaining: number | null
+  due_date: string | null
+  days_remaining: number | null
+  alert_status: 'overdue' | 'due' | 'upcoming' | 'untracked'
+}
 
 function stockKey(option: InventoryOption) {
   return `${option.item_id}:${option.location_id}`
@@ -85,6 +99,7 @@ export function MaintenancePage() {
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([])
   const [maintenanceTypes, setMaintenanceTypes] = useState<MaintenanceType[]>([])
   const [plans, setPlans] = useState<MaintenancePlan[]>([])
+  const [maintenanceAlerts, setMaintenanceAlerts] = useState<MaintenanceAlert[]>([])
   const [records, setRecords] = useState<MaintenanceRecord[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [assetStatuses, setAssetStatuses] = useState<StatusOption[]>([])
@@ -158,6 +173,7 @@ export function MaintenancePage() {
       maintenanceTypesResult,
       plansResult,
       recordsResult,
+      alertsResult,
       membershipsResult,
       profilesResult,
       assetStatusesResult,
@@ -189,6 +205,7 @@ export function MaintenancePage() {
         .eq('org_id', currentOrgId)
         .order('performed_at', { ascending: false })
         .limit(100),
+      supabase.rpc('get_maintenance_alerts', { p_org_id: currentOrgId }),
       supabase.from('memberships')
         .select('user_id')
         .eq('org_id', currentOrgId)
@@ -209,6 +226,7 @@ export function MaintenancePage() {
       ?? maintenanceTypesResult.error
       ?? plansResult.error
       ?? recordsResult.error
+      ?? alertsResult.error
       ?? membershipsResult.error
       ?? profilesResult.error
       ?? assetStatusesResult.error
@@ -227,6 +245,7 @@ export function MaintenancePage() {
     setMaintenanceTypes(maintenanceTypesResult.data ?? [])
     setPlans(plansResult.data ?? [])
     setRecords(recordsResult.data ?? [])
+    setMaintenanceAlerts(alertsResult.data ?? [])
     const profileNames = new Map((profilesResult.data ?? []).map((profile) => [profile.user_id, profile.display_name]))
     setMembers((membershipsResult.data ?? []).map(({ user_id }) => ({
       user_id,
@@ -262,7 +281,9 @@ export function MaintenancePage() {
     const channel = client
       .channel(`maintenance-${orgId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_records', filter: `org_id=eq.${orgId}` }, () => void loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_plans', filter: `org_id=eq.${orgId}` }, () => void loadData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'assets', filter: `org_id=eq.${orgId}` }, () => void loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'drone_details', filter: `org_id=eq.${orgId}` }, () => void loadData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory_items', filter: `org_id=eq.${orgId}` }, () => void loadData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory_movements', filter: `org_id=eq.${orgId}` }, () => void loadData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory_location_balances', filter: `org_id=eq.${orgId}` }, () => void loadData())
@@ -291,6 +312,7 @@ export function MaintenancePage() {
   const openCount = records.filter((record) => record.status === 'open' || record.status === 'in_progress').length
   const completedCount = records.filter((record) => record.status === 'completed').length
   const unavailableCount = assets.filter((asset) => asset.status === 'maintenance' || asset.status === 'repair').length
+  const urgentAlertCount = maintenanceAlerts.filter((alert) => alert.alert_status === 'overdue' || alert.alert_status === 'due').length
   const selectedAsset = assets.find((asset) => asset.id === draft.asset_id)
   const filteredPlans = plans.filter((plan) => plan.asset_type_code === selectedAsset?.asset_type_code)
   const memberNames = new Map(members.map((member) => [member.user_id, member.display_name]))
@@ -419,6 +441,67 @@ export function MaintenancePage() {
         <article><span className="maintenance-stat-icon maintenance-icon-amber"><AlertTriangle size={17} /></span><div><strong>{loading ? '…' : unavailableCount}</strong><small>Activos en mantenimiento o reparación</small></div></article>
         <article><span className="maintenance-stat-icon maintenance-icon-green"><ClipboardCheck size={17} /></span><div><strong>{loading ? '…' : completedCount}</strong><small>Intervenciones finalizadas</small></div></article>
       </div>
+
+      <section className="maintenance-section maintenance-alert-section">
+        <div className="maintenance-section-heading">
+          <div><h2><AlertTriangle size={15} /> Alertas preventivas</h2><p>Vencidas, próximas y pendientes de una referencia de cálculo</p></div>
+          <span className={urgentAlertCount ? 'maintenance-alert-count' : ''}>{loading ? '…' : `${maintenanceAlerts.length} alertas`}</span>
+        </div>
+        {loading ? (
+          <div className="maintenance-empty compact">Calculando próximos mantenimientos…</div>
+        ) : maintenanceAlerts.length === 0 ? (
+          <div className="maintenance-empty compact"><Check size={18} /><span>No hay mantenimientos próximos o vencidos con los intervalos configurados.</span></div>
+        ) : (
+          <div className="maintenance-alert-list">
+            {maintenanceAlerts.map((alert) => {
+              const details: string[] = []
+              if (alert.hours_remaining !== null) {
+                if (alert.hours_remaining < 0) details.push(`Vencido por ${Math.abs(alert.hours_remaining).toFixed(1)} h`)
+                else if (alert.hours_remaining === 0) details.push('Alcanzó el intervalo de horas')
+                else details.push(`${alert.hours_remaining.toFixed(1)} h restantes`)
+              }
+              if (alert.due_date && alert.days_remaining !== null) {
+                if (alert.days_remaining < 0) details.push(`Vencido desde ${formatDate(alert.due_date)}`)
+                else if (alert.days_remaining === 0) details.push('Programado para hoy')
+                else details.push(`${alert.days_remaining} días · ${formatDate(alert.due_date)}`)
+              }
+              if (alert.alert_status === 'untracked') {
+                details.push(alert.interval_flight_hours !== null
+                  ? alert.asset_type_code === 'drone'
+                    ? 'Faltan registros de horas de mantenimiento para calcular el intervalo'
+                    : 'El plan usa horas, pero este tipo de activo no tiene horómetro configurado'
+                  : 'Registra la fecha de adquisición o una intervención para calcular la fecha')
+              }
+              const statusLabel = alert.alert_status === 'overdue'
+                ? 'Vencido'
+                : alert.alert_status === 'due'
+                  ? 'Requiere atención'
+                  : alert.alert_status === 'upcoming'
+                    ? 'Próximo'
+                    : 'Sin referencia'
+              return (
+                <article className={`maintenance-alert-card maintenance-alert-${alert.alert_status}`} key={`${alert.asset_id}:${alert.plan_id}`}>
+                  <span className="maintenance-alert-icon"><AlertTriangle size={17} /></span>
+                  <div className="maintenance-alert-copy">
+                    <div className="maintenance-alert-title"><strong>{alert.asset_name} · {alert.internal_code}</strong><span>{statusLabel}</span></div>
+                    <p>{alert.plan_name}</p>
+                    <small>{details.join(' · ')}</small>
+                  </div>
+                  {canManage && alert.alert_status !== 'untracked' && (
+                    <button className="secondary-button" type="button" onClick={() => {
+                      setDraft((current) => ({ ...current, asset_id: alert.asset_id, plan_id: alert.plan_id }))
+                      setError('')
+                      setCreateOpen(true)
+                    }}>
+                      <Wrench size={14} /> Registrar
+                    </button>
+                  )}
+                </article>
+              )
+            })}
+          </div>
+        )}
+      </section>
 
       <section className="maintenance-section">
         <div className="maintenance-section-heading"><div><h2>Historial de intervenciones</h2><p>Registro técnico por activo</p></div><span>{filteredRecords.length} registros</span></div>

@@ -64,7 +64,8 @@ analítica y los reportes de horas siguen pendientes.
 
 Estado: registro de inicio/cierre, bloqueo del activo mientras hay una intervención
 abierta, planes preventivos configurables y uso transaccional de repuestos al cierre
-implementados. Faltan alertas por umbral de horas/fecha, adjuntos y pruebas con datos
+implementados. Alertas por vencer dentro del 10% del intervalo de horas o 7 días,
+vencidas y con datos base faltantes implementadas. Faltan adjuntos y pruebas con datos
 reales de Supabase.
 
 ## Fase 7: Inventario

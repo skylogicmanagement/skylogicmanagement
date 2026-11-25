@@ -134,10 +134,120 @@
 }
 
 .maintenance-section-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   margin: 0 0 4px;
   color: var(--text);
   font-size: 12px;
   font-weight: 650;
+}
+
+.maintenance-alert-count {
+  border-color: rgba(235, 119, 90, 0.3) !important;
+  background: rgba(235, 119, 90, 0.1);
+  color: #f0a27c !important;
+}
+
+.maintenance-alert-list {
+  display: grid;
+}
+
+.maintenance-alert-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.maintenance-alert-card:last-child {
+  border-bottom: 0;
+}
+
+.maintenance-alert-icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 9px;
+  background: rgba(39, 132, 245, 0.12);
+  color: #63aaff;
+}
+
+.maintenance-alert-overdue .maintenance-alert-icon,
+.maintenance-alert-due .maintenance-alert-icon {
+  background: rgba(235, 119, 90, 0.12);
+  color: #f08e78;
+}
+
+.maintenance-alert-untracked .maintenance-alert-icon {
+  background: rgba(231, 167, 73, 0.12);
+  color: #e6bd78;
+}
+
+.maintenance-alert-copy {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 4px;
+}
+
+.maintenance-alert-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.maintenance-alert-title strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.maintenance-alert-title span {
+  flex: 0 0 auto;
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: rgba(39, 132, 245, 0.1);
+  color: #70b6ff;
+  font-size: 7px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.maintenance-alert-overdue .maintenance-alert-title span,
+.maintenance-alert-due .maintenance-alert-title span {
+  background: rgba(235, 119, 90, 0.1);
+  color: #f0a27c;
+}
+
+.maintenance-alert-untracked .maintenance-alert-title span {
+  background: rgba(231, 167, 73, 0.1);
+  color: #e6bd78;
+}
+
+.maintenance-alert-copy p,
+.maintenance-alert-copy small {
+  margin: 0;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.maintenance-alert-copy small {
+  color: var(--muted-2);
+}
+
+.maintenance-alert-card > .secondary-button {
+  flex: 0 0 auto;
+  min-height: 32px;
+  font-size: 8px;
 }
 
 .maintenance-section-heading p {
@@ -516,6 +626,15 @@
   .maintenance-actions > .primary-button,
   .maintenance-actions > .secondary-button {
     flex: 1;
+  }
+
+  .maintenance-alert-card {
+    align-items: flex-start;
+    padding: 11px 12px;
+  }
+
+  .maintenance-alert-card > .secondary-button {
+    align-self: center;
   }
 }
 
