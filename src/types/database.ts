@@ -200,6 +200,33 @@ export interface Database {
           departure_at?: string
         }
       >
+      asset_assignments: Table<
+        {
+          id: string
+          org_id: string
+          asset_id: string
+          assigned_asset_id: string | null
+          assigned_user_id: string | null
+          operation_id: string | null
+          assignment_type: 'asset' | 'user' | 'operation'
+          started_at: string
+          ended_at: string | null
+          reason: string | null
+          created_by: string | null
+          created_at: string
+        },
+        {
+          org_id: string
+          asset_id: string
+          assignment_type: 'asset' | 'user' | 'operation'
+          assigned_asset_id?: string | null
+          assigned_user_id?: string | null
+          operation_id?: string | null
+          started_at?: string
+          ended_at?: string | null
+          reason?: string | null
+        }
+      >
       maintenance_types: Table<
         { org_id: string; code: string; name: string; active: boolean },
         { org_id: string; code: string; name: string; active?: boolean }
@@ -347,6 +374,26 @@ export interface Database {
           location_id?: string | null
           quantity_on_hand?: number
         }
+      >
+      audit_events: Table<
+        {
+          id: number
+          org_id: string
+          occurred_at: string
+          actor_user_id: string | null
+          event_type: string
+          entity_table: string
+          entity_id: string | null
+          before_state: Record<string, unknown> | null
+          after_state: Record<string, unknown> | null
+          correction_of: number | null
+          correction_reason: string | null
+          transaction_id: number
+          previous_hash: string | null
+          event_hash: string
+        },
+        never,
+        never
       >
     }
     Views: Record<string, never>

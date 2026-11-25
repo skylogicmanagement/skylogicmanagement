@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Box, CalendarDays, Pencil, Plus, RefreshCw, Search, X } from 'lucide-react'
+import { AlertTriangle, Box, CalendarDays, FileClock, Pencil, Plus, RefreshCw, Search, X } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { supabase } from '../../lib/supabase'
+import { AssetHistoryModal } from './AssetHistoryModal'
 
 type AssetType = { code: string; name: string }
 type AssetStatusOption = { code: string; name: string }
@@ -92,6 +93,7 @@ export function AssetsPage({ userId }: { userId: string }) {
   const [selectedType, setSelectedType] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [editingAsset, setEditingAsset] = useState<AssetRow | null>(null)
+  const [historyAsset, setHistoryAsset] = useState<AssetRow | null>(null)
   const [saving, setSaving] = useState(false)
   const [draft, setDraft] = useState(emptyDraft)
 
@@ -464,6 +466,18 @@ export function AssetsPage({ userId }: { userId: string }) {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {historyAsset && (
+          <AssetHistoryModal
+            asset={historyAsset}
+            assets={assets.map(({ id, name, internal_code }) => ({ id, name, internal_code }))}
+            locations={locationOptions.map(({ id, name }) => ({ id, name }))}
+            members={members}
+            onClose={() => setHistoryAsset(null)}
+          />
+        )}
+      </AnimatePresence>
+
       <div className="assets-panel">
         <div className="assets-panel-heading"><div><h2>{activeType === 'all' ? 'Todos los activos' : assetTypeOptions.find((type) => type.code === activeType)?.name ?? 'Activos'}</h2><p>{activeType === 'all' ? 'Equipos y componentes registrados en la empresa' : 'Activos de esta categoría'}</p></div><span className="assets-total">{filteredAssets.length} registros</span></div>
         {loading ? (
@@ -471,7 +485,7 @@ export function AssetsPage({ userId }: { userId: string }) {
         ) : filteredAssets.length ? (
           <div className="assets-table-wrap">
             <table className="assets-table">
-              <thead><tr><th>Activo</th><th>Tipo</th><th>Marca / modelo</th><th>Número de serie</th><th>Ubicación</th><th>Dato técnico</th><th>Estado</th>{canManage && <th>Ficha</th>}</tr></thead>
+              <thead><tr><th>Activo</th><th>Tipo</th><th>Marca / modelo</th><th>Número de serie</th><th>Ubicación</th><th>Dato técnico</th><th>Estado</th><th>Hoja de vida</th>{canManage && <th>Ficha</th>}</tr></thead>
               <tbody>
                 {filteredAssets.map((asset) => (
                   <tr key={asset.id}>
@@ -494,6 +508,7 @@ export function AssetsPage({ userId }: { userId: string }) {
                         {statuses.filter((status) => !['in_transit', 'in_operation'].includes(status.code)).map((status) => <option value={status.code} key={status.code}>{status.name}</option>)}
                       </select>
                     ) : <span className={`asset-status-pill asset-status-${asset.status}`}><i />{statusNames[asset.status] ?? asset.status}</span>}</td>
+                    <td><button className="asset-history-button" type="button" onClick={() => setHistoryAsset(asset)}><FileClock size={14} /> Ver historial</button></td>
                     {canManage && <td><button className="asset-edit-button" type="button" onClick={() => openEditForm(asset)} aria-label={`Editar ficha de ${asset.name}`}><Pencil size={14} /> Editar</button></td>}
                   </tr>
                 ))}
@@ -516,8 +531,12 @@ export function AssetsPage({ userId }: { userId: string }) {
                         {statuses.filter((status) => !['in_transit', 'in_operation'].includes(status.code)).map((status) => <option value={status.code} key={status.code}>{status.name}</option>)}
                       </select>
                       <button className="asset-edit-button" type="button" onClick={() => openEditForm(asset)}><Pencil size={14} /> Editar ficha</button>
+                      <button className="asset-history-button" type="button" onClick={() => setHistoryAsset(asset)}><FileClock size={14} /> Hoja de vida</button>
                     </div>
-                  ) : <span className={`asset-status-pill asset-status-${asset.status}`}><i />{statusNames[asset.status] ?? asset.status}</span>}
+                  ) : <div className="asset-mobile-actions">
+                    <span className={`asset-status-pill asset-status-${asset.status}`}><i />{statusNames[asset.status] ?? asset.status}</span>
+                    <button className="asset-history-button" type="button" onClick={() => setHistoryAsset(asset)}><FileClock size={14} /> Hoja de vida</button>
+                  </div>}
                 </article>
               ))}
             </div>

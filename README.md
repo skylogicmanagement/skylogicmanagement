@@ -12,7 +12,8 @@ habilitar el acceso seguro.
 - Fase 2 completada: React, Supabase, Tailwind, HashRouter y GitHub Pages configurados.
 - Fase 3: identidad visual, acceso privado y dashboard inicial implementados.
 - Fase 4: listado, búsqueda, alta y edición de fichas de activos con seriales,
-  adquisición, proveedor, ubicación, responsable y datos técnicos de baterías.
+  adquisición, proveedor, ubicación, responsable, datos técnicos de baterías y hoja de
+  vida cronológica.
 - Fase 5 iniciada: operaciones, salidas, devoluciones parciales, lectura de horómetro y
   fincas con formularios transaccionales y sincronización en tiempo real.
 - Fases 4, 6 y 7 iniciadas: edición de fichas, mantenimiento transaccional y descuento

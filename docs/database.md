@@ -108,6 +108,12 @@ Cada asignacion conserva:
 - fecha de inicio
 - fecha de fin
 - motivo
+
+La hoja de vida consulta en modo lectura la ficha actual y los registros relacionados
+de `audit_events`, `operation_assets`, `asset_assignments`, `flight_logs`,
+`maintenance_records` e `inventory_movements`. Cada origen se consulta solo si el usuario
+tiene el permiso de lectura correspondiente; no se amplían políticas RLS ni se modifica
+el historial persistido.
 - usuario que la registro
 
 No se utiliza una relacion permanente para equipos auxiliares.
