@@ -5,7 +5,6 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   BatteryCharging,
-  Bell,
   Boxes,
   ChevronDown,
   ClipboardList,
@@ -21,7 +20,6 @@ import {
   Moon,
   PackageCheck,
   Plane,
-  Search,
   Settings2,
   ShieldCheck,
   Sun,
@@ -37,6 +35,7 @@ import { InventoryPage } from './features/inventory/InventoryPage'
 import { PilotsPage } from './features/pilots/PilotsPage'
 import { AuditPage } from './features/audit/AuditPage'
 import { ReportsPage } from './features/reports/ReportsPage'
+import { HeaderTools } from './features/global/HeaderTools'
 import { supabase, supabaseConfigError } from './lib/supabase'
 
 const FlightChart = lazy(() => import('./components/FlightChart'))
@@ -454,9 +453,8 @@ function Workspace({ session }: { session: Session }) {
           <button className="icon-button mobile-menu" aria-label="Abrir menú" onClick={() => setMenuOpen(true)}><Menu size={20} /></button>
           <div className="breadcrumbs"><span>Sky Logic</span><span className="crumb-slash">/</span><strong>{page}</strong></div>
           <div className="topbar-actions">
-            <div className="search-box"><Search size={16} /><span>Buscar activos, operaciones...</span><kbd>⌘ K</kbd></div>
+            <HeaderTools userId={session.user.id} onNavigate={setPage} />
             <button className="icon-button" title={darkMode ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'} onClick={() => setDarkMode((mode) => !mode)}>{darkMode ? <Sun size={18} /> : <Moon size={18} />}</button>
-            <button className="icon-button notification-button" aria-label="Notificaciones"><Bell size={18} /><i /></button>
           </div>
         </header>
 

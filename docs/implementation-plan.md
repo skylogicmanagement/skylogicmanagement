@@ -123,6 +123,14 @@ CSV implementados. También se consulta el historial de mantenimientos por perio
 costo, activo y técnico con exportación CSV. Siguen pendientes otros reportes operativos/administrativos,
 exportaciones Excel/PDF y pruebas integrales contra Supabase.
 
+La barra superior incluye búsqueda global de activos, operaciones, pilotos, mantenimientos
+y artículos de inventario, con acceso limitado por permisos y atajo Ctrl/Cmd+K. El centro
+de notificaciones consulta operaciones activas, mantenimientos vencidos o requeridos,
+artículos bajo el mínimo y activos dañados o fuera de servicio; las alertas enlazan al
+módulo correspondiente y se actualizan al abrir o solicitar actualización. El logo completo
+se muestra en la barra lateral sin recorte. Estas funciones usan las tablas y permisos
+existentes, sin requerir una migración adicional.
+
 ## Criterios de aprobación de la Fase 1
 
 - Entidades y relaciones aprobadas.
