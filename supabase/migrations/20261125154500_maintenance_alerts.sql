@@ -1,4 +1,4 @@
-create function public.get_maintenance_alerts(p_org_id uuid)
+create or replace function public.get_maintenance_alerts(p_org_id uuid)
 returns table (
   asset_id uuid,
   asset_name text,
@@ -71,31 +71,31 @@ begin
   ),
   scheduled as (
     select
-      plan_assets.*,
+      pa.*,
       coalesce(
-        next_intervention_at,
+        pa.next_intervention_at,
         case
-          when interval_days is not null and completed_at is not null
-            then completed_at::date + interval_days
-          when interval_days is not null and performed_at is not null
-            then performed_at::date + interval_days
-          when interval_days is not null and acquired_on is not null
-            then acquired_on + interval_days
+          when pa.interval_days is not null and pa.completed_at is not null
+            then pa.completed_at::date + pa.interval_days
+          when pa.interval_days is not null and pa.performed_at is not null
+            then pa.performed_at::date + pa.interval_days
+          when pa.interval_days is not null and pa.acquired_on is not null
+            then pa.acquired_on + pa.interval_days
           else null
         end
       ) as due_date,
       case
-        when asset_type_code = 'drone' and interval_flight_hours is not null
-          then interval_flight_hours - hours_since_maintenance
+        when pa.asset_type_code = 'drone' and pa.interval_flight_hours is not null
+          then pa.interval_flight_hours - pa.hours_since_maintenance
         else null
       end as hours_remaining
-    from plan_assets
+    from plan_assets pa
   ),
   measured as (
     select
-      scheduled.*,
-      due_date - current_date as days_remaining
-    from scheduled
+      s.*,
+      s.due_date - current_date as days_remaining
+    from scheduled s
   )
   select
     measured.asset_id,

@@ -18,10 +18,14 @@
    - `supabase/migrations/20261125150000_asset_profile_editing.sql`
    - `supabase/migrations/20261125153000_maintenance_inventory_integration.sql`
    - `supabase/migrations/20261125154500_maintenance_alerts.sql`
-   No vuelvas a ejecutar una migración que ya se aplicó correctamente. La integración
-   de repuestos requiere las migraciones de mantenimiento e inventario; si alguna falta,
-   aplícala antes de la integración. La migración de edición de fichas puede conservarse
-   en su orden, pero no se debe repetir si ya fue aplicada.
+   La migración de alertas usa `create or replace` y se puede volver a ejecutar para
+   actualizar la función si se corrige. Si ya la ejecutaste y las alertas muestran un
+   error de columna ambigua, vuelve a ejecutar únicamente
+   `20261125154500_maintenance_alerts.sql`. No vuelvas a ejecutar otras migraciones que
+   ya se aplicaron correctamente. La integración de repuestos requiere las migraciones
+   de mantenimiento e inventario; si alguna falta, aplícala antes de la integración.
+   La migración de edición de fichas puede conservarse en su orden, pero no se debe
+   repetir si ya fue aplicada.
 4. Invita a la primera cuenta desde Authentication. No habilites el registro público.
 5. Obtén el UUID de esa cuenta en Authentication y ejecuta, reemplazando el texto
    marcador:
