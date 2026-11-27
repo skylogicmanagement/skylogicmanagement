@@ -15,9 +15,13 @@ habilitar el acceso seguro.
   adquisición, proveedor, ubicación, responsable, datos técnicos de baterías y hoja de
   vida cronológica; asignación manual de responsables y componentes a drones con
   historial de liberaciones.
-- Fase 5 iniciada: operaciones, salidas, devoluciones parciales, lectura de horómetro y
-  fincas con formularios transaccionales y sincronización en tiempo real. Los pilotos
-  se administran sin cuentas de acceso y se asignan por dron y operación.
+- Fase 5 iniciada: operaciones con devolución parcial, captura y acumulación de horas
+  trabajadas, edición de fincas con estadísticas y edición de operaciones abiertas.
+  Los pilotos se administran sin cuentas de acceso, se muestran ocupados/disponibles y
+  cuentan con hoja de vida de vuelos.
+- La cámara puede leer códigos QR para completar los números de serie de activos y
+  artículos serializados.
+- El acceso y las transiciones de sesión incluyen animaciones con la imagen DJI T70.
 - Fase 8 iniciada: consulta de auditoría con filtros por entidad, acción y fechas,
   detalle de cambios y verificación manual de la cadena SHA-256.
 - Fases 4, 6 y 7 iniciadas: edición de fichas, mantenimiento transaccional y descuento
@@ -49,6 +53,7 @@ habilitar el acceso seguro.
 - [Alertas preventivas de mantenimiento](supabase/migrations/20261125154500_maintenance_alerts.sql)
 - [Flujos de asignación de activos](supabase/migrations/20261125160000_asset_assignment_workflows.sql)
 - [Administración de pilotos y asignación por operación](supabase/migrations/20261125161000_pilot_management.sql)
+- [Horas por operación, disponibilidad de pilotos y reportes de fincas](supabase/migrations/20261127130000_farm_flight_and_pilot_workflows.sql)
 
 ## Ejecucion local
 

@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { supabase } from '../../lib/supabase'
 import { AssetHistoryModal } from './AssetHistoryModal'
 import { AssetAssignmentModal, type CurrentAssetAssignment } from './AssetAssignmentModal'
+import { SerialNumberInput } from '../../components/SerialNumberInput'
 
 type AssetType = { code: string; name: string }
 type AssetStatusOption = { code: string; name: string }
@@ -469,7 +470,7 @@ export function AssetsPage({ userId }: { userId: string }) {
               <label>Código interno<input required maxLength={60} value={draft.internal_code} onChange={(event) => setDraft({ ...draft, internal_code: event.target.value })} /></label>
               <label>Nombre del activo<input required maxLength={120} value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /></label>
               <label>Tipo de activo<select required value={draft.asset_type_code} onChange={(event) => setDraft({ ...draft, asset_type_code: event.target.value })}><option value="">Selecciona un tipo</option>{types.map((type) => <option value={type.code} key={type.code}>{type.name}</option>)}</select></label>
-              <label>Número de serie <span className="optional-label">Opcional</span><input maxLength={120} value={draft.serial_number} onChange={(event) => setDraft({ ...draft, serial_number: event.target.value })} /></label>
+              <label>Número de serie <span className="optional-label">Opcional</span><SerialNumberInput maxLength={120} value={draft.serial_number} onChange={(serial_number) => setDraft((current) => ({ ...current, serial_number }))} /></label>
               <label>Marca <span className="optional-label">Opcional</span><input maxLength={100} value={draft.brand} onChange={(event) => setDraft({ ...draft, brand: event.target.value })} /></label>
               <label>Modelo <span className="optional-label">Opcional</span><input maxLength={100} value={draft.model} onChange={(event) => setDraft({ ...draft, model: event.target.value })} /></label>
               <label>Fecha de adquisición <span className="optional-label">Opcional</span><input type="date" value={draft.acquired_at} onChange={(event) => setDraft({ ...draft, acquired_at: event.target.value })} /></label>
@@ -498,7 +499,7 @@ export function AssetsPage({ userId }: { userId: string }) {
                 <label>Código interno<input required maxLength={60} value={draft.internal_code} onChange={(event) => setDraft({ ...draft, internal_code: event.target.value })} /></label>
                 <label>Nombre del activo<input required maxLength={120} value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /></label>
                 <label>Tipo de activo<input value={types.find((type) => type.code === editingAsset.asset_type_code)?.name ?? editingAsset.asset_type_code} readOnly /></label>
-                <label>Número de serie <span className="optional-label">Opcional</span><input maxLength={120} value={draft.serial_number} onChange={(event) => setDraft({ ...draft, serial_number: event.target.value })} /></label>
+                <label>Número de serie <span className="optional-label">Opcional</span><SerialNumberInput maxLength={120} value={draft.serial_number} onChange={(serial_number) => setDraft((current) => ({ ...current, serial_number }))} /></label>
                 <label>Marca <span className="optional-label">Opcional</span><input maxLength={100} value={draft.brand} onChange={(event) => setDraft({ ...draft, brand: event.target.value })} /></label>
                 <label>Modelo <span className="optional-label">Opcional</span><input maxLength={100} value={draft.model} onChange={(event) => setDraft({ ...draft, model: event.target.value })} /></label>
                 <label>Fecha de adquisición <span className="optional-label">Opcional</span><input type="date" value={draft.acquired_at} onChange={(event) => setDraft({ ...draft, acquired_at: event.target.value })} /></label>
@@ -593,6 +594,7 @@ export function AssetsPage({ userId }: { userId: string }) {
                     <td>{canManage ? (
                       <select className="asset-status-select" aria-label={`Cambiar estado de ${asset.name}`} value={asset.status} onChange={(event) => void handleStatusChange(asset.id, event.target.value)}>
                         {statuses.filter((status) => !['in_transit', 'in_operation'].includes(status.code)).map((status) => <option value={status.code} key={status.code}>{status.name}</option>)}
+                        {statuses.filter((status) => ['in_transit', 'in_operation'].includes(status.code)).map((status) => <option value={status.code} key={status.code} disabled>{status.name} · gestionado por operación</option>)}
                       </select>
                     ) : <span className={`asset-status-pill asset-status-${asset.status}`}><i />{statusNames[asset.status] ?? asset.status}</span>}</td>
                     <td>{assignmentSummary(asset)}</td>
@@ -619,6 +621,7 @@ export function AssetsPage({ userId }: { userId: string }) {
                     <div className="asset-mobile-actions">
                       <select className="asset-status-select" aria-label={`Cambiar estado de ${asset.name}`} value={asset.status} onChange={(event) => void handleStatusChange(asset.id, event.target.value)}>
                         {statuses.filter((status) => !['in_transit', 'in_operation'].includes(status.code)).map((status) => <option value={status.code} key={status.code}>{status.name}</option>)}
+                        {statuses.filter((status) => ['in_transit', 'in_operation'].includes(status.code)).map((status) => <option value={status.code} key={status.code} disabled>{status.name} · gestionado por operación</option>)}
                       </select>
                       <button className="asset-edit-button" type="button" onClick={() => openEditForm(asset)}><Pencil size={14} /> Editar ficha</button>
                       {canManageAssignments && <button className="asset-assignment-button" type="button" onClick={() => setAssigningAsset(asset)}><Link2 size={14} /> Asignar</button>}

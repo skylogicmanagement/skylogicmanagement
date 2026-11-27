@@ -4,7 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { supabase } from '../../lib/supabase'
 import './operations.css'
 
-type Farm = { id: string; name: string; municipality: string | null }
+type Farm = { id: string; name: string; municipality: string | null; active: boolean }
 type Asset = { id: string; internal_code: string; name: string; asset_type_code: string; status: string }
 type Member = { user_id: string; display_name: string }
 type Pilot = { id: string; full_name: string; phone: string | null; license_number: string | null; active: boolean }
@@ -19,6 +19,7 @@ type Operation = {
   departure_at: string | null
   returned_at: string | null
   created_at: string
+  notes: string | null
 }
 type OperationAsset = {
   id: string
@@ -28,6 +29,7 @@ type OperationAsset = {
   returned_at: string | null
   return_condition: string | null
 }
+
 type OperationAssetView = OperationAsset & { asset: Asset | null; pilot: Pilot | null }
 
 const returnConditions = [
@@ -59,6 +61,7 @@ export function OperationsPage({ userId }: { userId: string }) {
   const [assets, setAssets] = useState<Asset[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [pilots, setPilots] = useState<Pilot[]>([])
+  const [busyPilotIds, setBusyPilotIds] = useState<string[]>([])
   const [locations, setLocations] = useState<Location[]>([])
   const [canManage, setCanManage] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -69,6 +72,7 @@ export function OperationsPage({ userId }: { userId: string }) {
   const [createOpen, setCreateOpen] = useState(false)
   const [farmOpen, setFarmOpen] = useState(false)
   const [returning, setReturning] = useState<OperationAssetView | null>(null)
+  const [editingOperation, setEditingOperation] = useState<Operation | null>(null)
   const [assigningPilotAssetId, setAssigningPilotAssetId] = useState('')
   const [profileName, setProfileName] = useState('')
   const [needsProfile, setNeedsProfile] = useState(false)
@@ -93,9 +97,9 @@ export function OperationsPage({ userId }: { userId: string }) {
     received_by_user_id: userId,
     location_id: '',
     notes: '',
-    hour_meter_start: '',
-    hour_meter_end: '',
+    flight_hours: '',
   })
+  const [operationEditDraft, setOperationEditDraft] = useState({ farm_id: '', municipality: '', field_location: '', notes: '' })
 
   const loadData = useCallback(async () => {
     if (!supabase) return
@@ -122,19 +126,19 @@ export function OperationsPage({ userId }: { userId: string }) {
 
     const currentOrgId = membership.org_id
     setOrgId(currentOrgId)
-    const [operationsResult, farmsResult, assetsResult, membershipsResult, profilesResult, pilotsResult, locationsResult, permissionResult] =
+    const [operationsResult, farmsResult, assetsResult, membershipsResult, profilesResult, pilotsResult, locationsResult, permissionResult, busyPilotsResult] =
       await Promise.all([
         supabase
           .from('operations')
-          .select('id, operation_number, status, farm_id, municipality, field_location, departure_at, returned_at, created_at')
+          .select('id, operation_number, status, farm_id, municipality, field_location, departure_at, returned_at, created_at, notes')
           .eq('org_id', currentOrgId)
+          .order('departure_at', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false })
-          .limit(50),
+          .limit(100),
         supabase
           .from('farms')
-          .select('id, name, municipality')
+          .select('id, name, municipality, active')
           .eq('org_id', currentOrgId)
-          .eq('active', true)
           .order('name'),
         supabase
           .from('assets')
@@ -167,6 +171,11 @@ export function OperationsPage({ userId }: { userId: string }) {
           target_org: currentOrgId,
           permission: 'operations.manage',
         }),
+        supabase.from('operation_assets')
+          .select('pilot_id')
+          .eq('org_id', currentOrgId)
+          .is('returned_at', null)
+          .not('pilot_id', 'is', null),
       ])
 
     const firstError = operationsResult.error
@@ -177,6 +186,7 @@ export function OperationsPage({ userId }: { userId: string }) {
       ?? pilotsResult.error
       ?? locationsResult.error
       ?? permissionResult.error
+      ?? busyPilotsResult.error
     if (firstError) {
       setError(firstError.message)
       setLoading(false)
@@ -233,6 +243,7 @@ export function OperationsPage({ userId }: { userId: string }) {
     setAssets(assetsResult.data ?? [])
     setMembers(activeMembers)
     setPilots(pilotRows)
+    setBusyPilotIds([...new Set((busyPilotsResult.data ?? []).map(({ pilot_id }) => pilot_id).filter((id): id is string => Boolean(id)))])
     setLocations(locationsResult.data ?? [])
     setCanManage(permissionResult.data === true)
     setNeedsProfile(!profileById.has(userId))
@@ -287,6 +298,7 @@ export function OperationsPage({ userId }: { userId: string }) {
     })
   }, [farmNames, operations, query])
   const drones = assets.filter((asset) => asset.asset_type_code === 'drone')
+  const availablePilots = pilots.filter((pilot) => pilot.active && !busyPilotIds.includes(pilot.id))
   const currentUser = members.find((member) => member.user_id === userId)
 
   async function saveProfile(event: React.FormEvent<HTMLFormElement>) {
@@ -409,19 +421,40 @@ export function OperationsPage({ userId }: { userId: string }) {
       p_return_received_by_user_id: returnDraft.received_by_user_id,
       p_return_location_id: returnDraft.location_id || null,
       p_return_notes: returnDraft.notes.trim() || null,
-      p_hour_meter_start: returning.asset?.asset_type_code === 'drone' && returnDraft.hour_meter_start !== ''
-        ? Number(returnDraft.hour_meter_start)
-        : null,
-      p_hour_meter_end: returning.asset?.asset_type_code === 'drone' && returnDraft.hour_meter_end !== ''
-        ? Number(returnDraft.hour_meter_end)
+      p_flight_hours: returning.asset?.asset_type_code === 'drone' && returnDraft.flight_hours !== ''
+        ? Number(returnDraft.flight_hours)
         : null,
     })
     if (returnError) {
       setError(returnError.message)
     } else {
       setReturning(null)
-      setReturnDraft((current) => ({ ...current, notes: '', condition: 'good', location_id: '', hour_meter_start: '', hour_meter_end: '' }))
+      setReturnDraft((current) => ({ ...current, notes: '', condition: 'good', location_id: '', flight_hours: '' }))
       setNotice('Regreso registrado. El estado y la disponibilidad del activo se actualizaron.')
+      await loadData()
+    }
+    setSaving(false)
+  }
+
+  async function saveOperation(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!supabase || !orgId || !editingOperation) return
+    setSaving(true)
+    setError('')
+    setNotice('')
+    const { data, error: updateError } = await supabase.from('operations').update({
+      farm_id: operationEditDraft.farm_id,
+      municipality: operationEditDraft.municipality.trim() || null,
+      field_location: operationEditDraft.field_location.trim() || null,
+      notes: operationEditDraft.notes.trim() || null,
+    }).eq('id', editingOperation.id).eq('org_id', orgId).select('id').maybeSingle()
+    if (updateError) {
+      setError(updateError.message)
+    } else if (!data) {
+      setError('No fue posible actualizar la operación. Verifica tus permisos.')
+    } else {
+      setEditingOperation(null)
+      setNotice('Datos de la operación actualizados.')
       await loadData()
     }
     setSaving(false)
@@ -500,6 +533,10 @@ export function OperationsPage({ userId }: { userId: string }) {
                     <p><MapPin size={14} />{farmNames.get(operation.farm_id) ?? 'Finca sin nombre'}{operation.municipality ? ` · ${operation.municipality}` : ''}</p>
                   </div>
                   <div className="operation-date"><Clock3 size={15} /><span>Salida</span><strong>{formatDate(operation.departure_at)}</strong></div>
+                  {canManage && isOpen && <button className="operation-edit-button" type="button" onClick={() => {
+                    setEditingOperation(operation)
+                    setOperationEditDraft({ farm_id: operation.farm_id, municipality: operation.municipality ?? '', field_location: operation.field_location ?? '', notes: operation.notes ?? '' })
+                  }}>Editar</button>}
                 </div>
                 {operation.field_location && <p className="operation-field-location">{operation.field_location}</p>}
                 <div className="operation-assets-list">
@@ -520,8 +557,8 @@ export function OperationsPage({ userId }: { userId: string }) {
                               onChange={(event) => void assignPilot(item, event.target.value)}
                             >
                               <option value="">{pilots.some((pilot) => pilot.active) ? 'Selecciona piloto' : 'Registra un piloto primero'}</option>
-                              {pilots.filter((pilot) => pilot.active || pilot.id === item.pilot_id).map((pilot) => (
-                                <option key={pilot.id} value={pilot.id}>{pilot.full_name}{pilot.active ? '' : ' (inactivo)'}</option>
+                              {pilots.filter((pilot) => pilot.active && (!busyPilotIds.includes(pilot.id) || pilot.id === item.pilot_id) || pilot.id === item.pilot_id).map((pilot) => (
+                                <option key={pilot.id} value={pilot.id}>{pilot.full_name}{!pilot.active ? ' (inactivo)' : busyPilotIds.includes(pilot.id) && pilot.id !== item.pilot_id ? ' (ocupado)' : ''}</option>
                               ))}
                             </select>
                           ) : (
@@ -558,7 +595,7 @@ export function OperationsPage({ userId }: { userId: string }) {
               <label>Finca<select required value={draft.farm_id} onChange={(event) => {
                 const farm = farms.find(({ id }) => id === event.target.value)
                 setDraft((current) => ({ ...current, farm_id: event.target.value, municipality: farm?.municipality ?? current.municipality }))
-              }}><option value="">Selecciona una finca</option>{farms.map((farm) => <option key={farm.id} value={farm.id}>{farm.name}{farm.municipality ? ` · ${farm.municipality}` : ''}</option>)}</select></label>
+              }}><option value="">Selecciona una finca</option>{farms.filter((farm) => farm.active).map((farm) => <option key={farm.id} value={farm.id}>{farm.name}{farm.municipality ? ` · ${farm.municipality}` : ''}</option>)}</select></label>
               <div className="operation-form-grid">
                 <label>Municipio<input value={draft.municipality} onChange={(event) => setDraft((current) => ({ ...current, municipality: event.target.value }))} /></label>
                 <label>Ubicación en finca<input value={draft.field_location} onChange={(event) => setDraft((current) => ({ ...current, field_location: event.target.value }))} placeholder="Lote o referencia" /></label>
@@ -582,18 +619,18 @@ export function OperationsPage({ userId }: { userId: string }) {
                           }))}
                         >
                           <option value="">Selecciona un piloto</option>
-                          {pilots.filter((pilot) => pilot.active).map((pilot) => <option key={pilot.id} value={pilot.id}>{pilot.full_name}</option>)}
+                          {availablePilots.map((pilot) => <option key={pilot.id} value={pilot.id}>{pilot.full_name}</option>)}
                         </select>
                       </label>
                     )
                   })}
-                  {!pilots.some((pilot) => pilot.active) && <p className="form-hint">Registra y activa al menos un piloto en la sección Pilotos.</p>}
+                  {!availablePilots.length && <p className="form-hint">No hay pilotos disponibles. Registra uno o espera a que se libere un piloto ocupado.</p>}
                 </fieldset>
               )}
               <label>Condición al salir<textarea rows={2} required maxLength={500} value={draft.departure_condition} onChange={(event) => setDraft((current) => ({ ...current, departure_condition: event.target.value }))} placeholder="Describe la condición de los activos seleccionados" /></label>
               <PeopleFields members={members} values={draft} onChange={(key, value) => setDraft((current) => ({ ...current, [key]: value }))} />
               <label>Observaciones<textarea rows={3} value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} /></label>
-              <div className="operation-form-footer"><button className="secondary-button" type="button" onClick={() => setCreateOpen(false)}>Cancelar</button><button className="primary-button" type="submit" disabled={saving || !draft.asset_ids.some((id) => drones.some((drone) => drone.id === id)) || !pilots.some((pilot) => pilot.active)}>{saving ? 'Registrando…' : 'Confirmar salida'}</button></div>
+              <div className="operation-form-footer"><button className="secondary-button" type="button" onClick={() => setCreateOpen(false)}>Cancelar</button><button className="primary-button" type="submit" disabled={saving || !draft.asset_ids.some((id) => drones.some((drone) => drone.id === id)) || !availablePilots.length}>{saving ? 'Registrando…' : 'Confirmar salida'}</button></div>
               {farms.length === 0 && <p className="form-hint">Registra una finca antes de crear una operación.</p>}
             </form>
           </Modal>
@@ -607,16 +644,27 @@ export function OperationsPage({ userId }: { userId: string }) {
             </form>
           </Modal>
         )}
+        {editingOperation && (
+          <Modal title={`Editar operación #${editingOperation.operation_number}`} onClose={() => setEditingOperation(null)}>
+            <form className="operation-form" onSubmit={(event) => void saveOperation(event)}>
+              <label>Finca<select required value={operationEditDraft.farm_id} onChange={(event) => {
+                const farm = farms.find(({ id }) => id === event.target.value)
+                setOperationEditDraft((current) => ({ ...current, farm_id: event.target.value, municipality: farm?.municipality ?? current.municipality }))
+              }}>{farms.filter((farm) => farm.active || farm.id === operationEditDraft.farm_id).map((farm) => <option key={farm.id} value={farm.id}>{farm.name}{farm.municipality ? ` · ${farm.municipality}` : ''}{farm.active ? '' : ' · inactiva'}</option>)}</select></label>
+              <div className="operation-form-grid"><label>Municipio<input value={operationEditDraft.municipality} onChange={(event) => setOperationEditDraft((current) => ({ ...current, municipality: event.target.value }))} /></label><label>Ubicación en finca<input value={operationEditDraft.field_location} onChange={(event) => setOperationEditDraft((current) => ({ ...current, field_location: event.target.value }))} /></label></div>
+              <label>Observaciones<textarea rows={3} value={operationEditDraft.notes} onChange={(event) => setOperationEditDraft((current) => ({ ...current, notes: event.target.value }))} /></label>
+              <p className="form-hint">La fecha de salida y los registros de activos se conservan para mantener la trazabilidad.</p>
+              <div className="operation-form-footer"><button className="secondary-button" type="button" onClick={() => setEditingOperation(null)}>Cancelar</button><button className="primary-button" type="submit" disabled={saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button></div>
+            </form>
+          </Modal>
+        )}
         {returning && (
           <Modal title={`Recibir ${returning.asset?.name ?? 'activo'}`} onClose={() => setReturning(null)}>
             <form className="operation-form" onSubmit={(event) => void returnAsset(event)}>
               <label>Condición al regreso<select required value={returnDraft.condition} onChange={(event) => setReturnDraft((current) => ({ ...current, condition: event.target.value }))}>{returnConditions.map((condition) => <option key={condition.code} value={condition.code}>{condition.label}</option>)}</select></label>
               <label>Ubicación de regreso<select value={returnDraft.location_id} onChange={(event) => setReturnDraft((current) => ({ ...current, location_id: event.target.value }))}><option value="">Mantener ubicación actual</option>{locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select></label>
               {returning.asset?.asset_type_code === 'drone' && (
-                <div className="operation-form-grid">
-                  <label>Horómetro inicial<input type="number" min="0" step="0.01" required value={returnDraft.hour_meter_start} onChange={(event) => setReturnDraft((current) => ({ ...current, hour_meter_start: event.target.value }))} /></label>
-                  <label>Horómetro final<input type="number" min="0" step="0.01" required value={returnDraft.hour_meter_end} onChange={(event) => setReturnDraft((current) => ({ ...current, hour_meter_end: event.target.value }))} /></label>
-                </div>
+                <label>Horas de vuelo en esta operación<input type="number" min="0" step="0.01" required value={returnDraft.flight_hours} onChange={(event) => setReturnDraft((current) => ({ ...current, flight_hours: event.target.value }))} placeholder="Ej. 2.5" /><span className="form-hint">Se sumarán automáticamente al total de horas del dron.</span></label>
               )}
               <PeopleFields members={members} values={{ returned_by_user_id: returnDraft.returned_by_user_id, received_by_user_id: returnDraft.received_by_user_id }} onChange={(key, value) => setReturnDraft((current) => ({ ...current, [key === 'returned_by_user_id' ? 'returned_by_user_id' : 'received_by_user_id']: value }))} returning />
               <label>Observaciones<textarea rows={3} value={returnDraft.notes} onChange={(event) => setReturnDraft((current) => ({ ...current, notes: event.target.value }))} /></label>

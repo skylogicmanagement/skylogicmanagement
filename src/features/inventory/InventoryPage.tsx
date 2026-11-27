@@ -16,6 +16,7 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { supabase } from '../../lib/supabase'
 import { DocumentAttachments } from '../documents/DocumentAttachments'
+import { SerialNumberInput } from '../../components/SerialNumberInput'
 import './inventory.css'
 
 type InventoryItem = {
@@ -592,7 +593,7 @@ export function InventoryPage() {
                   <label>Marca / fabricante<input maxLength={100} value={itemDraft.manufacturer} onChange={(event) => setItemDraft({ ...itemDraft, manufacturer: event.target.value })} /></label>
                   <label>Modelo<input maxLength={100} value={itemDraft.model} onChange={(event) => setItemDraft({ ...itemDraft, model: event.target.value })} /></label>
                   <label>Referencia del fabricante<input maxLength={100} value={itemDraft.manufacturer_reference} onChange={(event) => setItemDraft({ ...itemDraft, manufacturer_reference: event.target.value })} /></label>
-                  <label>Número de serie<input maxLength={120} required={itemDraft.is_serialized} value={itemDraft.serial_number} onChange={(event) => setItemDraft({ ...itemDraft, serial_number: event.target.value })} /></label>
+                  <label>Número de serie <span className="optional-label">Opcional</span><SerialNumberInput maxLength={120} value={itemDraft.serial_number} onChange={(serial_number) => setItemDraft((current) => ({ ...current, serial_number }))} /></label>
                   <label>Fecha de compra<input type="date" value={itemDraft.acquired_on} onChange={(event) => setItemDraft({ ...itemDraft, acquired_on: event.target.value })} /></label>
                   <label>Proveedor<select value={itemDraft.supplier_id} onChange={(event) => setItemDraft({ ...itemDraft, supplier_id: event.target.value })}><option value="">Sin especificar</option>{suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></label>
                   <label>Valor unitario (COP)<input type="number" min="0" step="0.01" value={itemDraft.unit_value} onChange={(event) => setItemDraft({ ...itemDraft, unit_value: event.target.value })} /></label>

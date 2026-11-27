@@ -1,0 +1,105 @@
+.serial-input-wrap {
+  display: flex;
+  gap: 7px;
+}
+
+.serial-input-wrap input {
+  flex: 1;
+  min-width: 0;
+}
+
+.serial-scan-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 78px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-raised);
+  color: #63aaff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 9px;
+}
+
+.serial-scanner-backdrop {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(3, 8, 17, 0.8);
+  backdrop-filter: blur(6px);
+}
+
+.serial-scanner {
+  width: min(100%, 520px);
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+}
+
+.serial-scanner-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 15px;
+}
+
+.serial-scanner-heading h2 {
+  margin: 7px 0 5px;
+  color: var(--text);
+  font-size: 18px;
+}
+
+.serial-scanner-heading p,
+.serial-scanner-error {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.serial-camera-frame {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #050b14;
+}
+
+.serial-camera-frame video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.serial-camera-target {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(58%, 240px);
+  aspect-ratio: 1;
+  border: 2px solid #45c8ff;
+  border-radius: 14px;
+  box-shadow: 0 0 0 100vmax rgba(2, 8, 17, 0.12), 0 0 22px rgba(69, 200, 255, 0.35);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.serial-scanner-error {
+  margin-top: 10px;
+  color: #ffa38c;
+}
+
+.serial-scanner-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}

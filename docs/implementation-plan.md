@@ -46,7 +46,8 @@ asignaciones, vuelos, mantenimientos y repuestos según permisos. El flujo manua
 asignar responsables y asociar componentes a drones, con liberación histórica y
 sincronización de responsables de ficha. Adjuntos privados con carga y enlaces temporales
 implementados; se pueden asociar a activos, intervenciones de mantenimiento y artículos
-de inventario. Faltan pruebas con datos reales de Supabase.
+de inventario. La lectura QR desde cámara para seriales está disponible en activos y
+artículos serializados. Faltan pruebas con datos reales de Supabase.
 
 ## Fase 5: Operaciones
 
@@ -56,11 +57,13 @@ de inventario. Faltan pruebas con datos reales de Supabase.
 - Operadores y responsables.
 - Horas de vuelo.
 
-Estado: salida transaccional, registro de fincas, perfiles operativos, devoluciones
-parciales y captura del horómetro al regreso de cada dron implementados. La consulta
-analítica y los reportes de horas siguen pendientes. El catálogo de pilotos permite
-administrar personal sin cuenta de acceso, asignar uno por cada dron de una operación y
-registrar cambios de piloto mientras el dron siga en campo.
+Estado: salida transaccional, registro y edición de fincas con estadísticas, perfiles
+operativos, devoluciones parciales y captura de las horas trabajadas por operación
+implementados. Las horas se acumulan sin lecturas del horómetro. Las operaciones
+recientes se ordenan por fecha y permiten editar sus datos mientras siguen abiertas.
+El catálogo de pilotos permite administrar personal sin cuenta de acceso, ver su estado
+ocupado/disponible, consultar la hoja de vida de vuelos y asignar uno por cada dron de
+una operación; la base de datos impide asignar a un piloto ya ocupado.
 
 ## Fase 6: Mantenimiento
 
@@ -141,6 +144,10 @@ faltan pruebas integrales con cuentas de distintos roles.
 El botón Centro de ayuda abre una guía rápida con descripciones y accesos directos a los
 módulos. La sección de usuarios identifica con una instrucción concreta si todavía no se
 aplicó la migración requerida de administración.
+
+La pantalla de acceso, la carga de sesión y las transiciones de inicio y cierre de sesión
+usan la imagen DJI T70 con animaciones compatibles con la preferencia de movimiento
+reducido del dispositivo.
 
 ## Criterios de aprobación de la Fase 1
 

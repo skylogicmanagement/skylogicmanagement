@@ -83,7 +83,7 @@ aislar datos y evitar acoplar las tablas a una unica empresa.
 
 `drone_details` contiene datos propios del dron:
 
-- horómetro histórico acumulado, nulo mientras no se conozca
+- horas de vuelo acumuladas, nulas mientras no existan registros
 - horas desde el último mantenimiento, nulo mientras no se conozca
 - ultimo mantenimiento
 - intervalo preventivo siguiente
@@ -146,8 +146,10 @@ Al desactivar a una persona se conservan sus asignaciones históricas.
 Una operacion no se considera cerrada hasta recibir y verificar todos sus activos.
 `create_operation_with_assets` registra la salida y actualiza la disponibilidad de todos
 los activos en una única transacción. `return_operation_asset` registra cada regreso
-parcial; para drones, el regreso y la lectura del horómetro se registran juntos en la
-misma transacción. La operación se cierra cuando retorna el último activo.
+parcial; para drones, el regreso y las horas trabajadas en esa operación se registran
+juntos en la misma transacción. Las horas se acumulan en la ficha del dron a partir de
+los registros validados, sin requerir lecturas de horómetro. Los registros históricos
+conservan sus lecturas previas. La operación se cierra cuando retorna el último activo.
 La migración `20261125161000_pilot_management.sql` agrega `create_operation_with_pilots`,
 que crea la salida y valida/asigna un piloto activo a cada dron dentro de la misma
 transacción. La reasignación de un dron que sigue en campo se realiza mediante
@@ -155,11 +157,12 @@ transacción. La reasignación de un dron que sigue en campo se realiza mediante
 
 ### Vuelo
 
-`flight_logs` contiene dron, operacion, finca, fecha, horometro inicial, horometro final,
-horas calculadas y observaciones.
+`flight_logs` contiene dron, operacion, finca, fecha, horas trabajadas y observaciones.
+Las columnas opcionales del horómetro se conservan únicamente para los registros
+históricos capturados antes del cambio al ingreso de horas por operación.
 
-La lectura final debe ser mayor o igual a la inicial. La base puede generar las horas
-trabajadas y acumularlas a partir de registros validados.
+Las horas deben ser iguales o mayores a cero. La base las valida al registrar el regreso
+del dron y las acumula en `drone_details`.
 
 ### Mantenimiento
 

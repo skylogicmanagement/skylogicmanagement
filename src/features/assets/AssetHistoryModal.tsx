@@ -154,7 +154,7 @@ export function AssetHistoryModal({
           : Promise.resolve({ data: [], error: null }),
         asset.asset_type_code === 'drone'
           ? supabase.from('flight_logs')
-            .select('id, operation_id, farm_id, logged_at, hour_meter_start, hour_meter_end, flight_hours, recorded_by')
+            .select('id, operation_id, farm_id, logged_at, flight_hours, recorded_by')
             .eq('org_id', asset.org_id)
             .eq('drone_asset_id', asset.id)
             .order('logged_at', { ascending: false })
@@ -291,7 +291,7 @@ export function AssetHistoryModal({
           occurredAt: row.logged_at,
           category: 'flight',
           title: `Vuelo registrado · ${Number(row.flight_hours).toFixed(2)} h`,
-          detail: `Horómetro ${row.hour_meter_start}–${row.hour_meter_end} · Operación #${operationNumber.get(row.operation_id) ?? row.operation_id.slice(0, 8)}`,
+          detail: `Operación #${operationNumber.get(row.operation_id) ?? row.operation_id.slice(0, 8)}`,
           actorId: row.recorded_by,
         })
       }

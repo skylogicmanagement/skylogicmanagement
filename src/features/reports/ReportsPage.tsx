@@ -10,8 +10,6 @@ type FlightReportRow = {
   operation_id: string
   farm_id: string
   logged_at: string
-  hour_meter_start: number
-  hour_meter_end: number
   flight_hours: number
   recorded_by: string
   notes: string | null
@@ -160,7 +158,7 @@ export function ReportsPage() {
     let offset = 0
     while (true) {
       const { data, error: flightError } = await supabase.from('flight_logs')
-        .select('id, drone_asset_id, operation_id, farm_id, logged_at, hour_meter_start, hour_meter_end, flight_hours, recorded_by, notes')
+        .select('id, drone_asset_id, operation_id, farm_id, logged_at, flight_hours, recorded_by, notes')
         .eq('org_id', orgId)
         .gte('logged_at', start.toISOString())
         .lt('logged_at', end.toISOString())
@@ -297,15 +295,13 @@ export function ReportsPage() {
       downloadCsv(headers, lines, `sky-logic-mantenimientos-${startDate}-${endDate}.csv`)
       return
     }
-    const headers = ['Fecha y hora', 'Operación', 'Dron', 'Código', 'Finca', 'Horómetro inicial', 'Horómetro final', 'Horas de vuelo', 'Registrado por', 'Observaciones']
+    const headers = ['Fecha y hora', 'Operación', 'Dron', 'Código', 'Finca', 'Horas de vuelo', 'Registrado por', 'Observaciones']
     const lines = filteredFlights.map((flight) => [
       formatDate(flight.logged_at),
       flight.operation_number === null ? '' : `Operación #${flight.operation_number}`,
       flight.drone_name,
       flight.drone_code,
       flight.farm_name,
-      flight.hour_meter_start,
-      flight.hour_meter_end,
       Number(flight.flight_hours).toFixed(2),
       flight.recorded_by_name,
       flight.notes,
@@ -370,14 +366,13 @@ export function ReportsPage() {
         ) : (
           <div className="reports-table-wrap">
             <table className="reports-table">
-              <thead><tr><th>Fecha</th><th>Operación</th><th>Dron</th><th>Finca</th><th>Horómetro</th><th>Horas</th><th>Registrado por</th></tr></thead>
+              <thead><tr><th>Fecha</th><th>Operación</th><th>Dron</th><th>Finca</th><th>Horas</th><th>Registrado por</th></tr></thead>
               <tbody>{filteredFlights.map((flight) => (
                 <tr key={flight.id}>
                   <td>{formatDate(flight.logged_at)}</td>
                   <td>{flight.operation_number === null ? '—' : `#${flight.operation_number}`}</td>
                   <td><strong>{flight.drone_name}</strong><small>{flight.drone_code}</small></td>
                   <td>{flight.farm_name}</td>
-                  <td>{formatHours(Number(flight.hour_meter_start))} → {formatHours(Number(flight.hour_meter_end))}</td>
                   <td>{formatHours(Number(flight.flight_hours))} h</td>
                   <td>{flight.recorded_by_name}</td>
                 </tr>

@@ -471,7 +471,7 @@ export function MaintenancePage() {
                 details.push(alert.interval_flight_hours !== null
                   ? alert.asset_type_code === 'drone'
                     ? 'Faltan registros de horas de mantenimiento para calcular el intervalo'
-                    : 'El plan usa horas, pero este tipo de activo no tiene horómetro configurado'
+                    : 'Las horas de operación de este tipo de activo no se registran en el sistema'
                   : 'Registra la fecha de adquisición o una intervención para calcular la fecha')
               }
               const statusLabel = alert.alert_status === 'overdue'

@@ -120,6 +120,14 @@
   background: #35c49d;
 }
 
+.pilot-status-busy {
+  border-color: rgba(240, 165, 75, 0.25);
+  background: rgba(240, 165, 75, 0.08);
+  color: #f0b765;
+}
+
+.pilot-status-busy i { background: #f0a54b; }
+
 .pilot-card h2 {
   margin: 0;
   color: var(--text);
@@ -152,6 +160,76 @@
   font-size: 9px;
   line-height: 1.45;
 }
+
+.pilot-current-operation {
+  margin: -7px 0 0;
+  color: #f0b765;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.pilot-flight-summary,
+.pilot-history-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.pilot-flight-summary > div,
+.pilot-history-stats > div {
+  display: grid;
+  gap: 3px;
+}
+
+.pilot-flight-summary strong,
+.pilot-history-stats strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.pilot-flight-summary span,
+.pilot-history-stats span {
+  color: var(--muted-2);
+  font-size: 7px;
+}
+
+.pilot-history-button {
+  min-height: 30px;
+  border: 1px solid rgba(39, 132, 245, 0.22);
+  border-radius: 6px;
+  background: rgba(39, 132, 245, 0.07);
+  color: #63aaff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 8px;
+}
+
+.pilot-history-modal { width: min(100%, 680px); }
+
+.pilot-history-list {
+  display: grid;
+  max-height: 45vh;
+  overflow: auto;
+  margin: 14px 0;
+  border-top: 1px solid var(--border);
+}
+
+.pilot-history-list article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pilot-history-list article div { display: grid; gap: 4px; min-width: 0; }
+.pilot-history-list article strong { color: var(--text); font-size: 9px; }
+.pilot-history-list article span { color: var(--muted); font-size: 8px; }
+.pilot-history-list article b { color: #63aaff; font-size: 10px; white-space: nowrap; }
 
 .pilot-card .pilot-notes {
   grid-column: 1 / -1;

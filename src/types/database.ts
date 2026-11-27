@@ -195,8 +195,8 @@ export interface Database {
           operation_id: string
           farm_id: string
           logged_at: string
-          hour_meter_start: number
-          hour_meter_end: number
+          hour_meter_start: number | null
+          hour_meter_end: number | null
           flight_hours: number
           recorded_by: string
           notes: string | null
@@ -206,8 +206,9 @@ export interface Database {
           drone_asset_id: string
           operation_id: string
           farm_id: string
-          hour_meter_start: number
-          hour_meter_end: number
+          hour_meter_start?: number | null
+          hour_meter_end?: number | null
+          flight_hours: number
           logged_at?: string
           notes?: string | null
         }
@@ -528,8 +529,7 @@ export interface Database {
           p_return_received_by_user_id: string
           p_return_location_id?: string | null
           p_return_notes?: string | null
-          p_hour_meter_start?: number | null
-          p_hour_meter_end?: number | null
+          p_flight_hours?: number | null
           p_returned_at?: string
         }
         Returns: string

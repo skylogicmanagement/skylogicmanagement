@@ -25,6 +25,7 @@
    - `supabase/migrations/20261125164000_reporting_access.sql`
    - `supabase/migrations/20261125165000_maintenance_reporting_access.sql`
    - `supabase/migrations/20261125170000_user_management.sql`
+   - `supabase/migrations/20261127130000_farm_flight_and_pilot_workflows.sql`
    La migración de alertas usa `create or replace` y se puede volver a ejecutar para
    actualizar la función si se corrige. Si ya la ejecutaste y las alertas muestran un
    error de columna ambigua, vuelve a ejecutar únicamente
@@ -61,6 +62,10 @@
    `20261125170000_user_management.sql`, una sola vez. Crea contactos de usuario visibles
    únicamente a administradores, protege la última cuenta con `users.manage` y agrega las
    funciones transaccionales para vincular miembros y cambiar roles o estado.
+   Si ya aplicaste las migraciones previas, ejecuta únicamente
+   `20261127130000_farm_flight_and_pilot_workflows.sql` desde SQL Editor, una sola vez.
+   Esta migración permite registrar horas por operación conservando las lecturas históricas
+   del horómetro y evita asignar un piloto que ya esté en una operación abierta.
 4. Invita a la primera cuenta desde Authentication. No habilites el registro público.
 5. Obtén el UUID de esa cuenta en Authentication y ejecuta, reemplazando el texto
    marcador:

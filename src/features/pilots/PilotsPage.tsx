@@ -20,12 +20,21 @@ type PilotDraft = {
   license_number: string
   notes: string
 }
+type PilotSummary = {
+  operationCount: number
+  flightCount: number
+  totalHours: number
+  lastFlightAt: string | null
+  currentOperation: { operationNumber: number; farmName: string } | null
+  flights: Array<{ id: string; operationNumber: number; farmName: string; droneName: string; loggedAt: string; hours: number }>
+}
 
 const emptyDraft: PilotDraft = { full_name: '', phone: '', license_number: '', notes: '' }
 
 export function PilotsPage({ userId }: { userId: string }) {
   const reduceMotion = useReducedMotion()
   const [pilots, setPilots] = useState<Pilot[]>([])
+  const [pilotSummaries, setPilotSummaries] = useState<Record<string, PilotSummary>>({})
   const [orgId, setOrgId] = useState('')
   const [canManage, setCanManage] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -35,6 +44,7 @@ export function PilotsPage({ userId }: { userId: string }) {
   const [notice, setNotice] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Pilot | null>(null)
+  const [historyPilot, setHistoryPilot] = useState<Pilot | null>(null)
   const [draft, setDraft] = useState(emptyDraft)
 
   const loadData = useCallback(async () => {
@@ -59,7 +69,7 @@ export function PilotsPage({ userId }: { userId: string }) {
     }
 
     setOrgId(membership.org_id)
-    const [pilotsResult, manageResult] = await Promise.all([
+    const [pilotsResult, manageResult, operationsResult, assignmentsResult, flightsResult, farmsResult, dronesResult] = await Promise.all([
       supabase.from('pilots')
         .select('id, full_name, phone, license_number, notes, active, created_at')
         .eq('org_id', membership.org_id)
@@ -68,12 +78,135 @@ export function PilotsPage({ userId }: { userId: string }) {
         target_org: membership.org_id,
         permission: 'operations.manage',
       }),
+      supabase.from('operations')
+        .select('id, operation_number, status, farm_id')
+        .eq('org_id', membership.org_id)
+        .order('id')
+        .range(0, 999),
+      supabase.from('operation_assets')
+        .select('operation_id, asset_id, pilot_id, returned_at')
+        .eq('org_id', membership.org_id)
+        .not('pilot_id', 'is', null)
+        .order('operation_id')
+        .order('asset_id')
+        .range(0, 999),
+      supabase.from('flight_logs')
+        .select('id, operation_id, drone_asset_id, logged_at, flight_hours')
+        .eq('org_id', membership.org_id)
+        .order('logged_at', { ascending: false })
+        .order('id')
+        .range(0, 999),
+      supabase.from('farms')
+        .select('id, name')
+        .eq('org_id', membership.org_id),
+      supabase.from('assets')
+        .select('id, name')
+        .eq('org_id', membership.org_id)
+        .eq('asset_type_code', 'drone'),
     ])
-    const error = pilotsResult.error ?? manageResult.error
+    const error = pilotsResult.error ?? manageResult.error ?? operationsResult.error
+      ?? assignmentsResult.error ?? flightsResult.error ?? farmsResult.error ?? dronesResult.error
     if (error) {
       setLoadError(error.message)
     } else {
-      setPilots(pilotsResult.data ?? [])
+      const operationRows = [...(operationsResult.data ?? [])]
+      for (let offset = operationRows.length; operationRows.length > 0 && operationRows.length % 1000 === 0; offset += 1000) {
+        const { data, error: pageError } = await supabase.from('operations')
+          .select('id, operation_number, status, farm_id')
+          .eq('org_id', membership.org_id)
+          .order('id')
+          .range(offset, offset + 999)
+        if (pageError) {
+          setLoadError(pageError.message)
+          setLoading(false)
+          return
+        }
+        operationRows.push(...(data ?? []))
+        if (!data || data.length < 1000) break
+      }
+
+      const assignmentRows = [...(assignmentsResult.data ?? [])]
+      for (let offset = assignmentRows.length; assignmentRows.length > 0 && assignmentRows.length % 1000 === 0; offset += 1000) {
+        const { data, error: pageError } = await supabase.from('operation_assets')
+          .select('operation_id, asset_id, pilot_id, returned_at')
+          .eq('org_id', membership.org_id)
+          .not('pilot_id', 'is', null)
+          .order('operation_id')
+          .order('asset_id')
+          .range(offset, offset + 999)
+        if (pageError) {
+          setLoadError(pageError.message)
+          setLoading(false)
+          return
+        }
+        assignmentRows.push(...(data ?? []))
+        if (!data || data.length < 1000) break
+      }
+
+      const flightRows = [...(flightsResult.data ?? [])]
+      for (let offset = flightRows.length; flightRows.length > 0 && flightRows.length % 1000 === 0; offset += 1000) {
+        const { data, error: pageError } = await supabase.from('flight_logs')
+          .select('id, operation_id, drone_asset_id, logged_at, flight_hours')
+          .eq('org_id', membership.org_id)
+          .order('logged_at', { ascending: false })
+          .order('id')
+          .range(offset, offset + 999)
+        if (pageError) {
+          setLoadError(pageError.message)
+          setLoading(false)
+          return
+        }
+        flightRows.push(...(data ?? []))
+        if (!data || data.length < 1000) break
+      }
+
+      const pilotRows = pilotsResult.data ?? []
+      const operationById = new Map(operationRows.map((operation) => [operation.id, operation]))
+      const farmNames = new Map((farmsResult.data ?? []).map((farm) => [farm.id, farm.name]))
+      const droneNames = new Map((dronesResult.data ?? []).map((drone) => [drone.id, drone.name]))
+      const assignmentByOperationDrone = new Map(assignmentRows.map((assignment) => [`${assignment.operation_id}:${assignment.asset_id}`, assignment]))
+      const summaries: Record<string, PilotSummary> = Object.fromEntries(pilotRows.map((pilot) => [pilot.id, {
+        operationCount: 0,
+        flightCount: 0,
+        totalHours: 0,
+        lastFlightAt: null,
+        currentOperation: null,
+        flights: [],
+      }]))
+      for (const assignment of assignmentRows) {
+        if (!assignment.pilot_id) continue
+        const summary = summaries[assignment.pilot_id]
+        const operation = operationById.get(assignment.operation_id)
+        if (!summary || !operation) continue
+        summary.operationCount += 1
+        if (!assignment.returned_at && ['preparing', 'in_transit', 'in_operation'].includes(operation.status)) {
+          summary.currentOperation = {
+            operationNumber: operation.operation_number,
+            farmName: farmNames.get(operation.farm_id) ?? 'Finca sin nombre',
+          }
+        }
+      }
+      for (const flight of flightRows) {
+        const assignment = assignmentByOperationDrone.get(`${flight.operation_id}:${flight.drone_asset_id}`)
+        const operation = operationById.get(flight.operation_id)
+        if (!assignment?.pilot_id || !operation) continue
+        const summary = summaries[assignment.pilot_id]
+        if (!summary) continue
+        const hours = Number(flight.flight_hours)
+        summary.flightCount += 1
+        summary.totalHours += hours
+        summary.lastFlightAt ??= flight.logged_at
+        summary.flights.push({
+          id: flight.id,
+          operationNumber: operation.operation_number,
+          farmName: farmNames.get(operation.farm_id) ?? 'Finca sin nombre',
+          droneName: droneNames.get(flight.drone_asset_id) ?? 'Dron',
+          loggedAt: flight.logged_at,
+          hours,
+        })
+      }
+      setPilots(pilotRows)
+      setPilotSummaries(summaries)
       setCanManage(manageResult.data === true)
     }
     setLoading(false)
@@ -90,6 +223,9 @@ export function PilotsPage({ userId }: { userId: string }) {
     const channel = client
       .channel(`pilots-${orgId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pilots', filter: `org_id=eq.${orgId}` }, () => void loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'operations', filter: `org_id=eq.${orgId}` }, () => void loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'operation_assets', filter: `org_id=eq.${orgId}` }, () => void loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'flight_logs', filter: `org_id=eq.${orgId}` }, () => void loadData())
       .subscribe((status, error) => {
         if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && error) {
           setLoadError(error.message)
@@ -193,26 +329,32 @@ export function PilotsPage({ userId }: { userId: string }) {
         <div className="pilots-empty"><span className="asset-loading-mark" /><strong>Cargando pilotos…</strong></div>
       ) : pilots.length ? (
         <div className="pilots-grid">
-          {pilots.map((pilot) => (
-            <article className={`pilot-card${pilot.active ? '' : ' pilot-card-inactive'}`} key={pilot.id}>
-              <div className="pilot-card-top">
-                <span className="pilot-avatar"><UserRound size={18} /></span>
-                <span className={`pilot-status${pilot.active ? ' pilot-status-active' : ''}`}><i />{pilot.active ? 'Activo' : 'Inactivo'}</span>
-              </div>
-              <h2>{pilot.full_name}</h2>
-              <dl>
-                <div><dt>Teléfono</dt><dd>{pilot.phone || 'No registrado'}</dd></div>
-                <div><dt>Licencia</dt><dd>{pilot.license_number || 'No registrada'}</dd></div>
-                {pilot.notes && <div className="pilot-notes"><dt>Observaciones</dt><dd>{pilot.notes}</dd></div>}
-              </dl>
-              {canManage && (
-                <div className="pilot-card-actions">
-                  <button className="pilot-edit-button" type="button" onClick={() => openEdit(pilot)}><Pencil size={14} /> Editar</button>
-                  <button className={pilot.active ? 'pilot-deactivate-button' : 'pilot-reactivate-button'} type="button" onClick={() => void toggleActive(pilot)}>{pilot.active ? 'Desactivar' : 'Reactivar'}</button>
+          {pilots.map((pilot) => {
+            const summary = pilotSummaries[pilot.id]
+            return (
+              <article className={`pilot-card${pilot.active ? '' : ' pilot-card-inactive'}`} key={pilot.id}>
+                <div className="pilot-card-top">
+                  <span className="pilot-avatar"><UserRound size={18} /></span>
+                  <span className={`pilot-status${summary?.currentOperation ? ' pilot-status-busy' : pilot.active ? ' pilot-status-active' : ''}`}><i />{summary?.currentOperation ? 'Ocupado' : pilot.active ? 'Disponible' : 'Inactivo'}</span>
                 </div>
-              )}
-            </article>
-          ))}
+                <h2>{pilot.full_name}</h2>
+                {summary?.currentOperation && <p className="pilot-current-operation">En operación #{summary.currentOperation.operationNumber} · {summary.currentOperation.farmName}</p>}
+                <dl>
+                  <div><dt>Teléfono</dt><dd>{pilot.phone || 'No registrado'}</dd></div>
+                  <div><dt>Licencia</dt><dd>{pilot.license_number || 'No registrada'}</dd></div>
+                  {pilot.notes && <div className="pilot-notes"><dt>Observaciones</dt><dd>{pilot.notes}</dd></div>}
+                </dl>
+                <div className="pilot-flight-summary"><div><strong>{summary?.flightCount ?? 0}</strong><span>vuelos registrados</span></div><div><strong>{new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 }).format(summary?.totalHours ?? 0)} h</strong><span>horas de vuelo</span></div><div><strong>{summary?.operationCount ?? 0}</strong><span>operaciones</span></div></div>
+                <button className="pilot-history-button" type="button" onClick={() => setHistoryPilot(pilot)}>Ver hoja de vida</button>
+                {canManage && (
+                  <div className="pilot-card-actions">
+                    <button className="pilot-edit-button" type="button" onClick={() => openEdit(pilot)}><Pencil size={14} /> Editar</button>
+                    <button className={pilot.active ? 'pilot-deactivate-button' : 'pilot-reactivate-button'} type="button" onClick={() => void toggleActive(pilot)}>{pilot.active ? 'Desactivar' : 'Reactivar'}</button>
+                  </div>
+                )}
+              </article>
+            )
+          })}
         </div>
       ) : (
         <div className="pilots-empty">
@@ -237,7 +379,41 @@ export function PilotsPage({ userId }: { userId: string }) {
           />
         )}
       </AnimatePresence>
+      <AnimatePresence>
+        {historyPilot && (
+          <PilotHistoryModal
+            pilot={historyPilot}
+            summary={pilotSummaries[historyPilot.id]}
+            reduceMotion={Boolean(reduceMotion)}
+            onClose={() => setHistoryPilot(null)}
+          />
+        )}
+      </AnimatePresence>
     </motion.section>
+  )
+}
+
+function PilotHistoryModal({
+  pilot,
+  summary,
+  reduceMotion,
+  onClose,
+}: {
+  pilot: Pilot
+  summary: PilotSummary | undefined
+  reduceMotion: boolean
+  onClose: () => void
+}) {
+  const flights = summary?.flights ?? []
+  return (
+    <div className="pilot-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+      <motion.section className="pilot-modal pilot-history-modal" role="dialog" aria-modal="true" aria-labelledby="pilot-history-title" initial={reduceMotion ? false : { opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={reduceMotion ? undefined : { opacity: 0, y: 8, scale: 0.98 }}>
+        <div className="pilot-modal-heading"><div><span className="eyebrow">HOJA DE VIDA</span><h2 id="pilot-history-title">{pilot.full_name}</h2><p>Resumen de vuelos y operaciones asignadas.</p></div><button className="icon-button" type="button" aria-label="Cerrar hoja de vida" onClick={onClose}><X size={18} /></button></div>
+        <div className="pilot-history-stats"><div><strong>{summary?.flightCount ?? 0}</strong><span>vuelos</span></div><div><strong>{new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 }).format(summary?.totalHours ?? 0)} h</strong><span>horas acumuladas</span></div><div><strong>{summary?.operationCount ?? 0}</strong><span>operaciones</span></div></div>
+        {flights.length ? <div className="pilot-history-list">{flights.map((flight) => <article key={flight.id}><div><strong>Operación #{flight.operationNumber} · {flight.farmName}</strong><span>{flight.droneName} · {new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium' }).format(new Date(flight.loggedAt))}</span></div><b>{new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 }).format(flight.hours)} h</b></article>)}</div> : <div className="pilots-empty"><strong>Sin vuelos registrados</strong><p>Al regresar un dron de una operación, las horas aparecerán en esta hoja de vida.</p></div>}
+        <div className="pilot-form-actions"><button className="secondary-button" type="button" onClick={onClose}>Cerrar</button></div>
+      </motion.section>
+    </div>
   )
 }
 

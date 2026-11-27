@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Activity,
   AlertTriangle,
@@ -18,6 +18,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  MapPinned,
   Moon,
   PackageCheck,
   Pencil,
@@ -39,7 +40,9 @@ import { AuditPage } from './features/audit/AuditPage'
 import { ReportsPage } from './features/reports/ReportsPage'
 import { HeaderTools } from './features/global/HeaderTools'
 import { UsersPage } from './features/users/UsersPage'
+import { FarmsPage } from './features/farms/FarmsPage'
 import { supabase, supabaseConfigError } from './lib/supabase'
+import droneImage from '../drone-T70.png'
 
 const FlightChart = lazy(() => import('./components/FlightChart'))
 
@@ -56,6 +59,7 @@ const navigation = [
   { label: 'Resumen', icon: LayoutDashboard, section: 'GENERAL' },
   { label: 'Activos', icon: Boxes, section: 'GESTIÓN' },
   { label: 'Operaciones', icon: Plane, section: 'GESTIÓN' },
+  { label: 'Fincas', icon: MapPinned, section: 'GESTIÓN' },
   { label: 'Pilotos', icon: ContactRound, section: 'GESTIÓN' },
   { label: 'Mantenimiento', icon: Wrench, section: 'GESTIÓN' },
   { label: 'Inventario', icon: PackageCheck, section: 'GESTIÓN' },
@@ -119,6 +123,8 @@ function App() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [signingIn, setSigningIn] = useState(false)
+  const [authTransition, setAuthTransition] = useState<'login' | 'logout' | null>(null)
+  const transitionTimeout = useRef<number | null>(null)
 
   useEffect(() => {
     if (!supabase) return
@@ -131,10 +137,18 @@ function App() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession)
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        setAuthTransition(event === 'SIGNED_IN' ? 'login' : 'logout')
+        if (transitionTimeout.current !== null) window.clearTimeout(transitionTimeout.current)
+        transitionTimeout.current = window.setTimeout(() => setAuthTransition(null), 1500)
+      }
     })
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+      if (transitionTimeout.current !== null) window.clearTimeout(transitionTimeout.current)
+    }
   }, [])
 
   async function handleSignIn(event: React.FormEvent<HTMLFormElement>) {
@@ -149,6 +163,7 @@ function App() {
 
   if (!supabase) return <SetupScreen error={supabaseConfigError} />
   if (authLoading) return <LoadingScreen />
+  if (authTransition) return <AuthTransitionScreen transition={authTransition} />
   if (!session) {
     return (
       <SignInScreen
@@ -190,9 +205,32 @@ function SetupScreen({ error }: { error: string }) {
 function LoadingScreen() {
   return (
     <main className="loading-screen" aria-label="Cargando sesión">
+      <img className="loading-drone" src={droneImage} alt="" />
       <span className="loading-mark"><Command size={22} /></span>
       <span>Preparando tu espacio de trabajo</span>
     </main>
+  )
+}
+
+function AuthTransitionScreen({ transition }: { transition: 'login' | 'logout' }) {
+  const reduceMotion = useReducedMotion()
+  const entering = transition === 'login'
+  return (
+    <motion.main className="auth-transition-screen" initial={reduceMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={reduceMotion ? undefined : { opacity: 0 }} aria-live="polite">
+      <div className="auth-transition-radar" />
+      <motion.img
+        className="auth-transition-drone"
+        src={droneImage}
+        alt="Dron DJI Agras T70"
+        initial={reduceMotion ? false : { opacity: 0, scale: 0.72, y: 25 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: reduceMotion ? 0 : 0.65, ease: 'easeOut' }}
+      />
+      <span className="auth-transition-eyebrow">SKY LOGIC · SISTEMA OPERATIVO</span>
+      <h1>{entering ? 'Operación autorizada' : 'Sesión finalizada'}</h1>
+      <p>{entering ? 'Sincronizando tu centro de control…' : 'Cerrando los sistemas de forma segura…'}</p>
+      <span className="auth-transition-progress" />
+    </motion.main>
   )
 }
 
@@ -216,9 +254,10 @@ function SignInScreen({
   onSubmit,
 }: SignInScreenProps) {
   return (
-    <main className="auth-shell">
+    <motion.main className="auth-shell" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.55 }}>
       <div className="auth-visual">
-        <img src={`${import.meta.env.BASE_URL}brand/logo.jpg`} alt="Logo de Sky Logic" />
+        <img className="auth-drone-image" src={droneImage} alt="Dron DJI Agras T70" />
+        <div className="auth-visual-orbit" />
         <div className="auth-visual-copy">
           <span className="eyebrow">CONTROL OPERATIVO EN UN SOLO LUGAR</span>
           <h1>Tu operación,<br />siempre en vuelo.</h1>
@@ -245,7 +284,7 @@ function SignInScreen({
           <div className="auth-private"><ShieldCheck size={16} /> Acceso privado · Registro público deshabilitado</div>
         </div>
       </div>
-    </main>
+    </motion.main>
   )
 }
 
@@ -575,6 +614,8 @@ function Workspace({ session }: { session: Session }) {
             <AssetsPage userId={session.user.id} />
           ) : page === 'Operaciones' ? (
             <OperationsPage userId={session.user.id} />
+          ) : page === 'Fincas' ? (
+            <FarmsPage userId={session.user.id} />
           ) : page === 'Pilotos' ? (
             <PilotsPage userId={session.user.id} />
           ) : page === 'Mantenimiento' ? (
@@ -668,6 +709,7 @@ const helpTopics = [
   { title: 'Resumen', description: 'Consulta indicadores, estado de la flota, horas y actividad reciente.', page: 'Resumen' },
   { title: 'Activos', description: 'Registra drones, baterías, controles y equipos. Edita seriales, ubicación, estado y responsables.', page: 'Activos' },
   { title: 'Operaciones', description: 'Registra salidas a fincas, activos asignados, pilotos y devoluciones.', page: 'Operaciones' },
+  { title: 'Fincas', description: 'Consulta estadísticas de operaciones y horas de vuelo; administra los datos de cada finca.', page: 'Fincas' },
   { title: 'Pilotos', description: 'Administra los datos del personal que opera drones; no necesitan cuenta de acceso.', page: 'Pilotos' },
   { title: 'Mantenimiento', description: 'Consulta planes y alertas. Registra intervenciones y repuestos utilizados.', page: 'Mantenimiento' },
   { title: 'Inventario', description: 'Controla cantidades, mínimos, números de serie y movimientos de repuestos.', page: 'Inventario' },
