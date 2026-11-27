@@ -142,6 +142,12 @@ canceladas, las fechas, el estado y los registros de activos permanecen protegid
 conservar la trazabilidad. Esta regla se aplica en la base de datos mediante la migración
 `20261127140000_allow_completed_operation_edits.sql`.
 
+Los usuarios con `operations.manage` pueden eliminar permanentemente una operación y sus
+registros de vuelo y asignación. Las horas totales y desde el último mantenimiento se
+ajustan en la misma transacción; los eventos de auditoría se conservan. Por seguridad, la
+operación se rechaza si algún activo aún no ha regresado. Los adjuntos se eliminan del
+almacenamiento después de confirmar el borrado en la base de datos.
+
 `pilots` es el catálogo de personal de vuelo sin usuario de autenticación. Guarda nombre,
 teléfono, licencia, observaciones y estado activo. `operation_assets.pilot_id` identifica
 al piloto asignado a cada dron en esa operación; no crea una relación permanente con el

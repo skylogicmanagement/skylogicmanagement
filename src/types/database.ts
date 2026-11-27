@@ -534,6 +534,13 @@ export interface Database {
         }
         Returns: string
       }
+      delete_operation_with_history: {
+        Args: {
+          p_org_id: string
+          p_operation_id: string
+        }
+        Returns: string[]
+      }
       start_maintenance: {
         Args: {
           p_org_id: string

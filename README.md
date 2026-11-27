@@ -57,6 +57,7 @@ habilitar el acceso seguro.
 - [Administración de pilotos y asignación por operación](supabase/migrations/20261125161000_pilot_management.sql)
 - [Horas por operación, disponibilidad de pilotos y reportes de fincas](supabase/migrations/20261127130000_farm_flight_and_pilot_workflows.sql)
 - [Edición segura de operaciones finalizadas](supabase/migrations/20261127140000_allow_completed_operation_edits.sql)
+- [Eliminación de operaciones y recálculo de horas](supabase/migrations/20261127150000_delete_operations.sql)
 
 ## Ejecucion local
 

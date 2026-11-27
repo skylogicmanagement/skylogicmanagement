@@ -119,12 +119,17 @@ const initialStats: DashboardStats = {
 function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [authLoading, setAuthLoading] = useState(Boolean(supabase))
+  const [showInitialPageAnimation] = useState(() => window.sessionStorage.getItem('sky-logic-initial-page-animation') !== 'shown')
   const [authError, setAuthError] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [signingIn, setSigningIn] = useState(false)
   const [authTransition, setAuthTransition] = useState<'login' | 'logout' | null>(null)
   const transitionTimeout = useRef<number | null>(null)
+
+  useEffect(() => {
+    window.sessionStorage.setItem('sky-logic-initial-page-animation', 'shown')
+  }, [])
 
   useEffect(() => {
     if (!supabase) return
@@ -162,7 +167,7 @@ function App() {
   }
 
   if (!supabase) return <SetupScreen error={supabaseConfigError} />
-  if (authLoading) return <LoadingScreen />
+  if (authLoading) return <LoadingScreen showDrone={showInitialPageAnimation} />
   if (authTransition) return <AuthTransitionScreen transition={authTransition} />
   if (!session) {
     return (
@@ -202,10 +207,10 @@ function SetupScreen({ error }: { error: string }) {
   )
 }
 
-function LoadingScreen() {
+function LoadingScreen({ showDrone }: { showDrone: boolean }) {
   return (
     <main className="loading-screen" aria-label="Cargando sesión">
-      <img className="loading-drone" src={droneImage} alt="" />
+      {showDrone && <img className="loading-drone" src={droneImage} alt="" />}
       <span className="loading-mark"><Command size={22} /></span>
       <span>Preparando tu espacio de trabajo</span>
     </main>

@@ -95,6 +95,32 @@
   font-size: 8px;
 }
 
+.operation-delete-button,
+.operation-delete-confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 29px;
+  padding: 0 10px;
+  border: 1px solid rgba(240, 104, 104, 0.3);
+  border-radius: 6px;
+  background: rgba(240, 104, 104, 0.08);
+  color: #ff9a91;
+  cursor: pointer;
+  font: inherit;
+  font-size: 8px;
+}
+
+.operation-delete-confirm {
+  min-height: 36px;
+  font-size: 10px;
+}
+
+.operation-delete-warning {
+  color: #ffad9d;
+}
+
 .operation-card-header h2 {
   margin: 8px 0 6px;
   color: var(--text);

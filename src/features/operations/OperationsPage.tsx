@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Check, ChevronDown, Clock3, MapPin, Plus, RefreshCw, Truck, X } from 'lucide-react'
+import { AlertTriangle, Check, ChevronDown, Clock3, MapPin, Plus, RefreshCw, Trash2, Truck, X } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { supabase } from '../../lib/supabase'
 import './operations.css'
@@ -73,6 +73,7 @@ export function OperationsPage({ userId }: { userId: string }) {
   const [farmOpen, setFarmOpen] = useState(false)
   const [returning, setReturning] = useState<OperationAssetView | null>(null)
   const [editingOperation, setEditingOperation] = useState<Operation | null>(null)
+  const [deletingOperation, setDeletingOperation] = useState<Operation | null>(null)
   const [assigningPilotAssetId, setAssigningPilotAssetId] = useState('')
   const [profileName, setProfileName] = useState('')
   const [needsProfile, setNeedsProfile] = useState(false)
@@ -460,6 +461,35 @@ export function OperationsPage({ userId }: { userId: string }) {
     setSaving(false)
   }
 
+  async function deleteOperation() {
+    if (!supabase || !orgId || !deletingOperation) return
+    setSaving(true)
+    setError('')
+    setNotice('')
+    const { data: storagePaths, error: deleteError } = await supabase.rpc('delete_operation_with_history', {
+      p_org_id: orgId,
+      p_operation_id: deletingOperation.id,
+    })
+    if (deleteError) {
+      setError(deleteError.message)
+      setSaving(false)
+      return
+    }
+
+    setDeletingOperation(null)
+    let storageError = ''
+    if (storagePaths?.length) {
+      const { error: removeError } = await supabase.storage.from('sky-logic-private').remove(storagePaths)
+      if (removeError) storageError = removeError.message
+    }
+    await loadData()
+    setNotice(`Operación #${deletingOperation.operation_number} eliminada y horas de vuelo recalculadas.`)
+    if (storageError) {
+      setError(`La operación se eliminó, pero no se pudieron eliminar algunos archivos adjuntos: ${storageError}`)
+    }
+    setSaving(false)
+  }
+
   function toggleAsset(assetId: string) {
     setDraft((current) => ({
       ...current,
@@ -537,6 +567,7 @@ export function OperationsPage({ userId }: { userId: string }) {
                     setEditingOperation(operation)
                     setOperationEditDraft({ farm_id: operation.farm_id, municipality: operation.municipality ?? '', field_location: operation.field_location ?? '', notes: operation.notes ?? '' })
                   }}>Editar</button>}
+                  {canManage && <button className="operation-delete-button" type="button" aria-label={`Eliminar operación ${operation.operation_number}`} onClick={() => setDeletingOperation(operation)}><Trash2 size={14} />Eliminar</button>}
                 </div>
                 {operation.field_location && <p className="operation-field-location">{operation.field_location}</p>}
                 <div className="operation-assets-list">
@@ -656,6 +687,18 @@ export function OperationsPage({ userId }: { userId: string }) {
               <p className="form-hint">La fecha, el estado y los registros de activos se conservan para mantener la trazabilidad.</p>
               <div className="operation-form-footer"><button className="secondary-button" type="button" onClick={() => setEditingOperation(null)}>Cancelar</button><button className="primary-button" type="submit" disabled={saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button></div>
             </form>
+          </Modal>
+        )}
+        {deletingOperation && (
+          <Modal title={`Eliminar operación #${deletingOperation.operation_number}`} onClose={() => { if (!saving) setDeletingOperation(null) }}>
+            <div className="operation-form">
+              <p>Se eliminarán permanentemente esta operación, sus vuelos, los registros de asignación y sus adjuntos. Las horas acumuladas de los drones se recalcularán; los eventos de auditoría se conservarán.</p>
+              <p className="operation-delete-warning">No se puede eliminar mientras algún activo figure pendiente de regreso. Primero registra su devolución.</p>
+              <div className="operation-form-footer">
+                <button className="secondary-button" type="button" onClick={() => setDeletingOperation(null)} disabled={saving}>Cancelar</button>
+                <button className="operation-delete-confirm" type="button" onClick={() => void deleteOperation()} disabled={saving}>{saving ? 'Eliminando…' : <><Trash2 size={15} /> Eliminar definitivamente</>}</button>
+              </div>
+            </div>
           </Modal>
         )}
         {returning && (
