@@ -131,6 +131,12 @@ function App() {
     window.sessionStorage.setItem('sky-logic-initial-page-animation', 'shown')
   }, [])
 
+  function showAuthTransition(transition: 'login' | 'logout') {
+    setAuthTransition(transition)
+    if (transitionTimeout.current !== null) window.clearTimeout(transitionTimeout.current)
+    transitionTimeout.current = window.setTimeout(() => setAuthTransition(null), 1500)
+  }
+
   useEffect(() => {
     if (!supabase) return
 
@@ -144,11 +150,7 @@ function App() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession)
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        setAuthTransition(event === 'SIGNED_IN' ? 'login' : 'logout')
-        if (transitionTimeout.current !== null) window.clearTimeout(transitionTimeout.current)
-        transitionTimeout.current = window.setTimeout(() => setAuthTransition(null), 1500)
-      }
+      if (event === 'SIGNED_OUT') showAuthTransition('logout')
     })
     return () => {
       subscription.unsubscribe()
@@ -161,14 +163,20 @@ function App() {
     if (!supabase) return
     setSigningIn(true)
     setAuthError('')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) setAuthError(error.message)
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
+      setAuthError(error.message)
+    } else if (data.session) {
+      setSession(data.session)
+      showAuthTransition('login')
+    }
     setSigningIn(false)
   }
 
   if (!supabase) return <SetupScreen error={supabaseConfigError} />
   if (authLoading) return <LoadingScreen showDrone={showInitialPageAnimation} />
   if (authTransition) return <AuthTransitionScreen transition={authTransition} />
+  if (signingIn && session) return <LoadingScreen showDrone={false} />
   if (!session) {
     return (
       <SignInScreen
