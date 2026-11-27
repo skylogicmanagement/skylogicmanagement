@@ -1,11 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Camera, X } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import QrScanner from 'qr-scanner'
 import './serial-number-input.css'
-
-type DetectedBarcode = { rawValue: string }
-type BarcodeDetectorLike = { detect: (video: HTMLVideoElement) => Promise<DetectedBarcode[]> }
-type BarcodeDetectorConstructor = new (options?: { formats: string[] }) => BarcodeDetectorLike
 
 export function SerialNumberInput({
   value,
@@ -29,67 +26,53 @@ export function SerialNumberInput({
   useEffect(() => {
     if (!scannerOpen) return
     let active = true
-    let scanning = false
-    let stream: MediaStream | null = null
-    let frame = 0
-    const Detector = (window as Window & { BarcodeDetector?: BarcodeDetectorConstructor }).BarcodeDetector
+    let scanner: QrScanner | null = null
 
     async function startCamera() {
-      if (!Detector) {
-        setScannerError('Este navegador no permite leer códigos QR. Prueba con Chrome o Edge actualizado.')
-        return
-      }
       if (!navigator.mediaDevices?.getUserMedia) {
         setScannerError('No se puede acceder a la cámara. Abre Sky Logic mediante HTTPS y revisa los permisos.')
         return
       }
+
+      const video = videoRef.current
+      if (!video) return
+
+      scanner = new QrScanner(video, (result) => {
+        const serial = result.data.trim()
+        if (/^[A-Za-z0-9-]+$/.test(serial)) {
+          onChangeRef.current(serial.slice(0, maxLength))
+          setScannerOpen(false)
+        } else {
+          setScannerError('El QR no contiene un número de serie válido (solo letras, números y guiones).')
+        }
+      }, {
+        preferredCamera: 'environment',
+        maxScansPerSecond: 5,
+        returnDetailedScanResult: true,
+      })
+
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
-        if (!active) {
-          stream.getTracks().forEach((track) => track.stop())
-          return
-        }
-        const video = videoRef.current
-        if (!video) return
-        video.srcObject = stream
-        await video.play()
-        const detector = new Detector({ formats: ['qr_code'] })
-        const scan = async () => {
-          if (!active || !videoRef.current || scanning) return
-          scanning = true
-          try {
-            const [barcode] = await detector.detect(videoRef.current)
-            if (barcode) {
-              const serial = barcode.rawValue.trim()
-              if (/^[A-Za-z0-9-]+$/.test(serial)) {
-                onChangeRef.current(serial.slice(0, maxLength))
-                setScannerOpen(false)
-              } else {
-                setScannerError('El QR no contiene un número de serie válido (solo letras, números y guiones).')
-              }
-            }
-          } catch {
-            setScannerError('No fue posible leer el QR. Ajusta la cámara e inténtalo de nuevo.')
-          } finally {
-            scanning = false
-            if (active) frame = window.requestAnimationFrame(() => void scan())
-          }
-        }
-        frame = window.requestAnimationFrame(() => void scan())
+        await scanner.start()
       } catch (error) {
-        if (active) {
-          setScannerError(error instanceof Error && error.name === 'NotAllowedError'
-            ? 'Se denegó el acceso a la cámara. Habilítalo en los permisos del navegador.'
-            : 'No fue posible iniciar la cámara. Verifica que no esté siendo usada por otra aplicación.')
-        }
+        if (!active) return
+        scanner.destroy()
+        scanner = null
+        const errorName = error instanceof Error ? error.name : ''
+        const message = errorName === 'NotAllowedError'
+          ? 'Se denegó el acceso a la cámara. Habilítalo en los permisos del navegador.'
+          : errorName === 'NotFoundError'
+            ? 'No se encontró una cámara disponible en este dispositivo.'
+            : errorName === 'NotReadableError'
+              ? 'La cámara está ocupada por otra aplicación.'
+              : `No fue posible iniciar la cámara${error instanceof Error && error.message ? `: ${error.message}` : '.'}`
+        setScannerError(message)
       }
     }
 
     void startCamera()
     return () => {
       active = false
-      window.cancelAnimationFrame(frame)
-      stream?.getTracks().forEach((track) => track.stop())
+      scanner?.destroy()
     }
   }, [maxLength, scannerOpen])
 

@@ -3035,20 +3035,6 @@ button {
   animation: drone-hover 2.8s ease-in-out infinite;
 }
 
-.auth-drone-image {
-  position: relative;
-  z-index: 1;
-  width: 146px !important;
-  height: 146px !important;
-  margin: 0;
-  border: 1px solid rgba(98, 170, 255, 0.25);
-  border-radius: 20px !important;
-  background: rgba(15, 32, 54, 0.75);
-  object-fit: contain !important;
-  box-shadow: 0 14px 50px rgba(0, 0, 0, 0.24), 0 0 45px rgba(39, 132, 245, 0.12);
-  animation: drone-hover 4s ease-in-out infinite;
-}
-
 .auth-visual-orbit {
   position: absolute;
   top: 50%;
@@ -3157,6 +3143,5 @@ button {
 }
 
 @media (max-width: 650px) {
-  .auth-drone-image { width: 76px !important; height: 76px !important; }
   .auth-visual-orbit { display: none; }
 }

@@ -256,7 +256,7 @@ function SignInScreen({
   return (
     <motion.main className="auth-shell" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.55 }}>
       <div className="auth-visual">
-        <img className="auth-drone-image" src={droneImage} alt="Dron DJI Agras T70" />
+        <img src={`${import.meta.env.BASE_URL}brand/logo.jpg`} alt="Logo de Sky Logic" />
         <div className="auth-visual-orbit" />
         <div className="auth-visual-copy">
           <span className="eyebrow">CONTROL OPERATIVO EN UN SOLO LUGAR</span>

@@ -20,7 +20,8 @@ habilitar el acceso seguro.
   Los pilotos se administran sin cuentas de acceso, se muestran ocupados/disponibles y
   cuentan con hoja de vida de vuelos.
 - La cámara puede leer códigos QR para completar los números de serie de activos y
-  artículos serializados.
+  artículos serializados con un decodificador local ligero compatible con navegadores
+  móviles; la imagen de cámara no se envía a servicios externos.
 - El acceso y las transiciones de sesión incluyen animaciones con la imagen DJI T70.
 - Fase 8 iniciada: consulta de auditoría con filtros por entidad, acción y fechas,
   detalle de cambios y verificación manual de la cadena SHA-256.
