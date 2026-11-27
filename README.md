@@ -16,7 +16,8 @@ habilitar el acceso seguro.
   vida cronológica; asignación manual de responsables y componentes a drones con
   historial de liberaciones.
 - Fase 5 iniciada: operaciones con devolución parcial, captura y acumulación de horas
-  trabajadas, edición de fincas con estadísticas y edición de operaciones abiertas.
+  trabajadas, edición de fincas con estadísticas y edición de operaciones abiertas y
+  finalizadas, conservando su trazabilidad.
   Los pilotos se administran sin cuentas de acceso, se muestran ocupados/disponibles y
   cuentan con hoja de vida de vuelos.
 - La cámara puede leer códigos QR para completar los números de serie de activos y
@@ -55,6 +56,7 @@ habilitar el acceso seguro.
 - [Flujos de asignación de activos](supabase/migrations/20261125160000_asset_assignment_workflows.sql)
 - [Administración de pilotos y asignación por operación](supabase/migrations/20261125161000_pilot_management.sql)
 - [Horas por operación, disponibilidad de pilotos y reportes de fincas](supabase/migrations/20261127130000_farm_flight_and_pilot_workflows.sql)
+- [Edición segura de operaciones finalizadas](supabase/migrations/20261127140000_allow_completed_operation_edits.sql)
 
 ## Ejecucion local
 

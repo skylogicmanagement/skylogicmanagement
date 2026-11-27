@@ -98,6 +98,13 @@
   color: #ffa38c;
 }
 
+.serial-scanner-hint {
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
 .serial-scanner-actions {
   display: flex;
   justify-content: flex-end;

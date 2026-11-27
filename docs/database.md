@@ -136,6 +136,12 @@ estado, operador principal, responsable, entrega y recepcion.
 `operation_assets` representa cada activo incluido en una operacion. Conserva estado de
 salida, estado de regreso, entrega, recepcion, devolucion parcial y observaciones.
 
+Los usuarios con `operations.manage` pueden editar los datos descriptivos de operaciones
+abiertas y finalizadas (finca, municipio, ubicación y observaciones). Las operaciones
+canceladas, las fechas, el estado y los registros de activos permanecen protegidos para
+conservar la trazabilidad. Esta regla se aplica en la base de datos mediante la migración
+`20261127140000_allow_completed_operation_edits.sql`.
+
 `pilots` es el catálogo de personal de vuelo sin usuario de autenticación. Guarda nombre,
 teléfono, licencia, observaciones y estado activo. `operation_assets.pilot_id` identifica
 al piloto asignado a cada dron en esa operación; no crea una relación permanente con el

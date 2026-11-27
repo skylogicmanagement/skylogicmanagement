@@ -533,7 +533,7 @@ export function OperationsPage({ userId }: { userId: string }) {
                     <p><MapPin size={14} />{farmNames.get(operation.farm_id) ?? 'Finca sin nombre'}{operation.municipality ? ` · ${operation.municipality}` : ''}</p>
                   </div>
                   <div className="operation-date"><Clock3 size={15} /><span>Salida</span><strong>{formatDate(operation.departure_at)}</strong></div>
-                  {canManage && isOpen && <button className="operation-edit-button" type="button" onClick={() => {
+                  {canManage && operation.status !== 'cancelled' && <button className="operation-edit-button" type="button" onClick={() => {
                     setEditingOperation(operation)
                     setOperationEditDraft({ farm_id: operation.farm_id, municipality: operation.municipality ?? '', field_location: operation.field_location ?? '', notes: operation.notes ?? '' })
                   }}>Editar</button>}
@@ -653,7 +653,7 @@ export function OperationsPage({ userId }: { userId: string }) {
               }}>{farms.filter((farm) => farm.active || farm.id === operationEditDraft.farm_id).map((farm) => <option key={farm.id} value={farm.id}>{farm.name}{farm.municipality ? ` · ${farm.municipality}` : ''}{farm.active ? '' : ' · inactiva'}</option>)}</select></label>
               <div className="operation-form-grid"><label>Municipio<input value={operationEditDraft.municipality} onChange={(event) => setOperationEditDraft((current) => ({ ...current, municipality: event.target.value }))} /></label><label>Ubicación en finca<input value={operationEditDraft.field_location} onChange={(event) => setOperationEditDraft((current) => ({ ...current, field_location: event.target.value }))} /></label></div>
               <label>Observaciones<textarea rows={3} value={operationEditDraft.notes} onChange={(event) => setOperationEditDraft((current) => ({ ...current, notes: event.target.value }))} /></label>
-              <p className="form-hint">La fecha de salida y los registros de activos se conservan para mantener la trazabilidad.</p>
+              <p className="form-hint">La fecha, el estado y los registros de activos se conservan para mantener la trazabilidad.</p>
               <div className="operation-form-footer"><button className="secondary-button" type="button" onClick={() => setEditingOperation(null)}>Cancelar</button><button className="primary-button" type="submit" disabled={saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button></div>
             </form>
           </Modal>
